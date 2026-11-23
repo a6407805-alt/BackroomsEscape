@@ -1,0 +1,5 @@
+SCP-860-2 - The Forest Monster
+Based on "SCP-860 - Blue Key" by Enma Ai (https://scp-wiki.wikidot.com/scp-860), SCP Wiki, CC BY-SA 3.0.
+Model, animations and sounds from SCP - Containment Breach (github.com/Regalis11/scpcb) by Joonas Rikkonen ("Regalis") and the SCP-CB contributors, CC BY-SA 3.0.
+Changes: Model converted from .b3d to glTF, animations split into clips; behaviour rewritten for this game.
+This folder is licensed under CC BY-SA 3.0: https://creativecommons.org/licenses/by-sa/3.0/

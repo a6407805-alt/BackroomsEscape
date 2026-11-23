@@ -1,0 +1,80 @@
+{
+  "id": "scp-939",
+  "name": "SCP-939",
+  "nickname": "With Many Voices",
+  "objectClass": "Keter",
+  "description": "Pack predators with no eyes. They hunt by sound, and they lure prey by mimicking human voices. If you hear someone calling for help in the dark, stay quiet. Crouch, and they cannot hear you.",
+  "behaviour": "listener",
+  "modelEuler": [
+    90,
+    180,
+    0
+  ],
+  "height": 1.5,
+  "clips": {
+    "idle": "Idle",
+    "walk": "Walk",
+    "run": "Run",
+    "attack": "Attack",
+    "special": "Search"
+  },
+  "walkAnimSpeed": 1.0,
+  "runAnimSpeed": 1.2,
+  "walkSpeed": 1.2,
+  "runSpeed": 5.2,
+  "turnSpeed": 300,
+  "sightRange": 0,
+  "sightAngle": 0,
+  "hearing": 1.0,
+  "attackRange": 1.7,
+  "killDelay": 0.5,
+  "loseInterestTime": 12,
+  "lifetime": 260,
+  "levels": [
+    "level1",
+    "level2"
+  ],
+  "spawnWeight": 1.0,
+  "maxAlive": 2,
+  "minSpawnDistance": 18,
+  "maxSpawnDistance": 36,
+  "sounds": {
+    "ambient": [],
+    "alert": [
+      "0Alert1.ogg",
+      "0Alert2.ogg",
+      "0Alert3.ogg"
+    ],
+    "chase": [],
+    "attack": [
+      "0Attack1.ogg",
+      "0Attack2.ogg",
+      "0Attack3.ogg"
+    ],
+    "idleLines": [
+      "0Lure1.ogg",
+      "0Lure2.ogg",
+      "0Lure3.ogg",
+      "0Lure4.ogg",
+      "0Lure5.ogg",
+      "0Lure6.ogg",
+      "0Lure7.ogg",
+      "0Lure8.ogg",
+      "0Lure9.ogg",
+      "0Lure10.ogg"
+    ],
+    "volume": 1.0
+  },
+  "credit": {
+    "article": "SCP-939 - With Many Voices",
+    "author": "Adam Smascher",
+    "articleUrl": "https://scp-wiki.wikidot.com/scp-939",
+    "assets": "SCP - Containment Breach (github.com/Regalis11/scpcb)",
+    "assetAuthors": "Joonas Rikkonen (\"Regalis\") and the SCP-CB contributors",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "changes": "Model converted from .b3d to glTF, animations split into clips; behaviour rewritten for this game."
+  },
+  "model": "model.glb",
+  "yOffset": 0.0
+}

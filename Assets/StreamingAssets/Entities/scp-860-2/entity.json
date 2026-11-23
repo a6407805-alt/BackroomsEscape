@@ -1,0 +1,66 @@
+{
+  "id": "scp-860-2",
+  "name": "SCP-860-2",
+  "nickname": "The Forest Monster",
+  "objectClass": "Safe (SCP-860)",
+  "description": "The tall thing that lives behind the blue key's door. It prefers the dark, it is fast, and it gets bored quickly. Stay in the light.",
+  "behaviour": "hunter",
+  "modelEuler": [
+    90,
+    180,
+    0
+  ],
+  "height": 3.0,
+  "prefersDark": true,
+  "clips": {
+    "idle": "Idle",
+    "walk": "Walk",
+    "run": "Run",
+    "attack": "Attack",
+    "special": ""
+  },
+  "walkAnimSpeed": 1.0,
+  "runAnimSpeed": 1.0,
+  "walkSpeed": 1.8,
+  "runSpeed": 6.4,
+  "turnSpeed": 260,
+  "sightRange": 12,
+  "sightAngle": 140,
+  "attackRange": 1.8,
+  "killDelay": 0.5,
+  "loseInterestTime": 7,
+  "lifetime": 180,
+  "levels": [
+    "level1",
+    "level2"
+  ],
+  "spawnWeight": 0.7,
+  "maxAlive": 1,
+  "minSpawnDistance": 22,
+  "maxSpawnDistance": 40,
+  "sounds": {
+    "ambient": [
+      "Ambience.ogg"
+    ],
+    "alert": [],
+    "chase": [
+      "Chase1.ogg",
+      "Chase2.ogg"
+    ],
+    "attack": [],
+    "idleLines": [],
+    "volume": 0.9
+  },
+  "credit": {
+    "article": "SCP-860 - Blue Key",
+    "author": "Enma Ai",
+    "articleUrl": "https://scp-wiki.wikidot.com/scp-860",
+    "assets": "SCP - Containment Breach (github.com/Regalis11/scpcb)",
+    "assetAuthors": "Joonas Rikkonen (\"Regalis\") and the SCP-CB contributors",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "changes": "Model converted from .b3d to glTF, animations split into clips; behaviour rewritten for this game."
+  },
+  "model": "model.glb",
+  "yOffset": 0.0
+}

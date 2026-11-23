@@ -1,0 +1,81 @@
+{
+  "id": "scp-049",
+  "name": "SCP-049",
+  "nickname": "The Plague Doctor",
+  "objectClass": "Euclid",
+  "description": "A figure in a plague doctor's robes and mask. It speaks of curing 'the Pestilence' and its touch is lethal. It hunts by sight and will follow you through the halls.",
+  "behaviour": "hunter",
+  "modelEuler": [
+    0,
+    180,
+    0
+  ],
+  "height": 1.95,
+  "clips": {
+    "idle": "Idle",
+    "walk": "Walk",
+    "run": "Walk",
+    "attack": "Attack",
+    "special": ""
+  },
+  "walkAnimSpeed": 0.9,
+  "runAnimSpeed": 1.6,
+  "walkSpeed": 1.3,
+  "runSpeed": 3.9,
+  "turnSpeed": 240,
+  "sightRange": 16,
+  "sightAngle": 130,
+  "attackRange": 1.3,
+  "killDelay": 1.2,
+  "loseInterestTime": 18,
+  "lifetime": 240,
+  "levels": [
+    "level0",
+    "level1",
+    "level2"
+  ],
+  "spawnWeight": 1.0,
+  "maxAlive": 1,
+  "minSpawnDistance": 20,
+  "maxSpawnDistance": 40,
+  "sounds": {
+    "ambient": [],
+    "alert": [
+      "Spotted1.ogg",
+      "Spotted2.ogg",
+      "Spotted3.ogg",
+      "Spotted4.ogg",
+      "Spotted5.ogg",
+      "Spotted6.ogg",
+      "Spotted7.ogg"
+    ],
+    "chase": [
+      "049Chase.ogg"
+    ],
+    "attack": [
+      "Kidnap1.ogg"
+    ],
+    "idleLines": [
+      "Searching1.ogg",
+      "Searching2.ogg",
+      "Searching3.ogg",
+      "Searching4.ogg",
+      "Searching5.ogg",
+      "Searching6.ogg",
+      "Searching7.ogg"
+    ],
+    "volume": 1.0
+  },
+  "credit": {
+    "article": "SCP-049 - Plague Doctor",
+    "author": "Gabriel Jade",
+    "articleUrl": "https://scp-wiki.wikidot.com/scp-049",
+    "assets": "SCP - Containment Breach (github.com/Regalis11/scpcb)",
+    "assetAuthors": "Joonas Rikkonen (\"Regalis\") and the SCP-CB contributors",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "changes": "Model converted from .b3d to glTF, animations split into clips; behaviour rewritten for this game."
+  },
+  "model": "model.glb",
+  "yOffset": 0.0
+}

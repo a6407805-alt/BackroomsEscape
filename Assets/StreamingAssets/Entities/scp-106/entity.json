@@ -1,0 +1,73 @@
+{
+  "id": "scp-106",
+  "name": "SCP-106",
+  "nickname": "The Old Man",
+  "objectClass": "Keter",
+  "description": "An elderly, rotting humanoid that corrodes everything it touches. It sinks through floors and walls as if they weren't there, and it is in no hurry. Keep moving.",
+  "behaviour": "stalker",
+  "modelEuler": [
+    0,
+    180,
+    0
+  ],
+  "height": 1.85,
+  "phaseThroughWalls": true,
+  "clips": {
+    "idle": "Idle",
+    "walk": "Walk",
+    "run": "Walk",
+    "attack": "Attack",
+    "special": "Rise"
+  },
+  "walkAnimSpeed": 0.8,
+  "runAnimSpeed": 1.0,
+  "walkSpeed": 1.7,
+  "runSpeed": 1.7,
+  "turnSpeed": 200,
+  "sightRange": 60,
+  "sightAngle": 360,
+  "attackRange": 1.2,
+  "killDelay": 1.0,
+  "loseInterestTime": 9999,
+  "lifetime": 55,
+  "levels": [
+    "level0",
+    "level1",
+    "level2"
+  ],
+  "spawnWeight": 0.5,
+  "maxAlive": 1,
+  "minSpawnDistance": 8,
+  "maxSpawnDistance": 16,
+  "sounds": {
+    "ambient": [
+      "Breathing.ogg"
+    ],
+    "alert": [
+      "Laugh.ogg"
+    ],
+    "chase": [
+      "Chase.ogg"
+    ],
+    "attack": [
+      "Corrosion1.ogg",
+      "Corrosion2.ogg"
+    ],
+    "idleLines": [
+      "Laugh.ogg"
+    ],
+    "volume": 1.0
+  },
+  "credit": {
+    "article": "SCP-106 - The Old Man",
+    "author": "Dr Gears",
+    "articleUrl": "https://scp-wiki.wikidot.com/scp-106",
+    "assets": "SCP - Containment Breach (github.com/Regalis11/scpcb)",
+    "assetAuthors": "Joonas Rikkonen (\"Regalis\") and the SCP-CB contributors",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "changes": "Model converted from .b3d to glTF, animations split into clips; behaviour rewritten for this game."
+  },
+  "model": "model.glb",
+  "yOffset": 0.0
+}

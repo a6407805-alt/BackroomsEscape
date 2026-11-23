@@ -1,0 +1,70 @@
+{
+  "id": "scp-096",
+  "name": "SCP-096",
+  "nickname": "The \"Shy Guy\"",
+  "objectClass": "Euclid",
+  "description": "A pale, emaciated humanoid that sits and weeps. It is harmless until someone sees its face. Then it screams, and comes for you, through anything, until it reaches you. Don't look.",
+  "behaviour": "shy",
+  "modelEuler": [
+    0,
+    180,
+    0
+  ],
+  "height": 2.35,
+  "clips": {
+    "idle": "Idle",
+    "walk": "Walk",
+    "run": "Run",
+    "attack": "Attack",
+    "special": "Trigger"
+  },
+  "walkAnimSpeed": 1.0,
+  "runAnimSpeed": 1.3,
+  "walkSpeed": 1.0,
+  "runSpeed": 6.9,
+  "turnSpeed": 500,
+  "sightRange": 22,
+  "sightAngle": 360,
+  "attackRange": 1.5,
+  "killDelay": 0.5,
+  "triggerTime": 6,
+  "loseInterestTime": 9999,
+  "lifetime": 200,
+  "levels": [
+    "level0",
+    "level1",
+    "level2"
+  ],
+  "spawnWeight": 0.8,
+  "maxAlive": 1,
+  "minSpawnDistance": 16,
+  "maxSpawnDistance": 32,
+  "sounds": {
+    "ambient": [
+      "Crying.ogg"
+    ],
+    "alert": [
+      "Triggered.ogg"
+    ],
+    "chase": [
+      "096Chase.ogg"
+    ],
+    "attack": [
+      "Scream.ogg"
+    ],
+    "idleLines": [],
+    "volume": 1.0
+  },
+  "credit": {
+    "article": "SCP-096 - The \"Shy Guy\"",
+    "author": "Dr Dan",
+    "articleUrl": "https://scp-wiki.wikidot.com/scp-096",
+    "assets": "SCP - Containment Breach (github.com/Regalis11/scpcb)",
+    "assetAuthors": "Joonas Rikkonen (\"Regalis\") and the SCP-CB contributors",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "changes": "Model converted from .b3d to glTF, animations split into clips; behaviour rewritten for this game."
+  },
+  "model": "model.glb",
+  "yOffset": 0.0
+}
