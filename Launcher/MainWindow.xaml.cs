@@ -106,13 +106,12 @@ namespace BackroomsLauncher
         {
             var demo = new List<PatchNote>
             {
-                new PatchNote { Version = "v0.3.0", Date = "2026-11-18T20:00:00Z", Title = "Technical combat and seven new-look stages",
-                    Notes = "• Stamina, blocks, parries and ripostes\n• Dodge with invincibility frames\n• Every stage rebuilt: skies, lighting, backdrops\n• Explosive props removed" },
-                new PatchNote { Version = "v0.2.0", Date = "2026-11-17T20:00:00Z", Title = "Grapples, throws and limb tearing", Notes = "• Grab, throw, slam and tear limbs\n• 20 martial-arts specials" },
+                new PatchNote { Version = "v0.1.0", Date = "2026-11-23T06:00:00Z", Title = "Welcome to the Backrooms",
+                    Notes = "• Three endless levels: The Lobby, Habitable Zone, Pipe Dreams\n• SCP-049, 096, 106, 939 and 860-2\n• Flashlight, stamina, sanity, Almond Water" },
             };
             ShowNotes(demo);
             SetState(State.Update);
-            SetStatus("Update available: v0.3.0", "412.6 MB download");
+            SetStatus("Update available: v0.1.0", "95.0 MB download");
             SetProgress(0);
         }
 
