@@ -90,7 +90,7 @@ namespace Backrooms.EditorTools
             if (report.summary.result != BuildResult.Succeeded)
             {
                 Debug.LogError("[BackroomsEscape CLI] Build failed: " + report.summary.result);
-                EditorApplication.Exit(1);
+                if (Application.isBatchMode) EditorApplication.Exit(1);
                 return;
             }
             foreach (string d in Directory.GetDirectories(BuildDir, "*DoNotShip")) Directory.Delete(d, true);
@@ -98,6 +98,15 @@ namespace Backrooms.EditorTools
             if (File.Exists(zipPath)) File.Delete(zipPath);
             ZipFile.CreateFromDirectory(BuildDir, zipPath, System.IO.Compression.CompressionLevel.Optimal, false);
             Debug.Log("[BackroomsEscape CLI] Built & zipped " + zipPath + " (" + (new FileInfo(zipPath).Length / 1048576f).ToString("0.00") + " MB)");
+        }
+
+        /// <summary>Same as the command-line build, from the editor: Builds/Windows + Builds/BackroomsEscape-Windows.zip, no upload.</summary>
+        [MenuItem("Backrooms/Build Windows Zip (no upload)", priority = 2)]
+        private static void BuildZipMenu()
+        {
+            if (!EditorUtility.DisplayDialog("Build BackroomsEscape", "Build version " + PlayerSettings.bundleVersion + " for Windows and zip it into Builds/?\n\n(This does not upload anything.)", "Build", "Cancel")) return;
+            BuildCli();
+            EditorUtility.RevealInFinder(Path.Combine("Builds", ZipName));
         }
 
         [MenuItem("Backrooms/Capture Launcher Art (Play mode) %#&k", priority = 1)]   // Ctrl+Shift+Alt+K
