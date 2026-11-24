@@ -53,7 +53,9 @@ namespace Backrooms.EditorTools
         {
             bool changed = false;
             Directory.CreateDirectory(MatDir);
-            changed |= Mat("Lit", "Universal Render Pipeline/Lit", m => { });
+            changed |= Mat("Lit", "Universal Render Pipeline/Lit", m => { m.enableInstancing = true; });
+            var lit = AssetDatabase.LoadAssetAtPath<Material>(MatDir + "/Lit.mat");
+            if (lit != null && !lit.enableInstancing) { lit.enableInstancing = true; EditorUtility.SetDirty(lit); changed = true; }   // the toilet pit draws thousands of instances
             changed |= Mat("LitCutout", "Universal Render Pipeline/Lit", m =>
             {
                 m.SetFloat("_AlphaClip", 1f); m.SetFloat("_Cutoff", 0.5f); m.SetFloat("_Cull", 0f);

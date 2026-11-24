@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
@@ -20,6 +21,25 @@ namespace Backrooms
         public ChunkManager Chunks { get; private set; }
         public MazeField Field { get; private set; }
         public int LevelIndex { get; private set; }
+        public GameUI UI => _ui;
+        public AaronRoom Room { get; private set; }
+        public PitLevel Pit { get; private set; }
+        /// <summary>Drum pieces back on Aaron's kit / in your hands right now.</summary>
+        public readonly HashSet<string> Placed = new HashSet<string>();
+        public readonly List<string> Carried = new List<string>();
+        public bool KitComplete
+        {
+            get
+            {
+                foreach (var l in _cfg.levels) foreach (var id in l.drumPieces) if (!Placed.Contains(id)) return false;
+                return true;
+            }
+        }
+        public int TotalPieces { get { int n = 0; foreach (var l in _cfg.levels) n += l.drumPieces.Length; return n; } }
+        public string[] LevelPieces => _cfg.levels[LevelIndex].drumPieces;
+        /// <summary>Where each of this level's pieces lies (cell for maze levels, world position for the pit).</summary>
+        public readonly Dictionary<string, Vector3> PieceSpots = new Dictionary<string, Vector3>();
+        private readonly Dictionary<Vector2Int, string> _pieceCells = new Dictionary<Vector2Int, string>();
 
         private GameConfig _cfg;
         private GameUI _ui;
@@ -98,6 +118,8 @@ namespace Backrooms
             _runSeed = _cfg.world.seed != 0 ? _cfg.world.seed : Random.Range(1, int.MaxValue);
             _runTime = 0f;
             Player.ResetStats();
+            Placed.Clear();
+            Carried.Clear();
             BuildLevel(0, attract: false);
             _ui.ShowHud();
             SetCursor(true);
@@ -113,19 +135,95 @@ namespace Backrooms
             var theme = _cfg.levels[LevelIndex];
             _director.Clear();
             Chunks.Clear();
+            if (Room != null) Destroy(Room.gameObject);
+            if (Pit != null) Destroy(Pit.gameObject);
+            Room = null; Pit = null;
             int seed = (int)Hash.U(_runSeed, LevelIndex, 7);
             Field = new MazeField(seed, _cfg.world.cellSize, _cfg.world.chunkCells, theme);
-            Chunks.Init(Field, _cfg.world);
-            Chunks.Target = Player.transform;
-            Vector3 start = Field.CellCenter(Field.StartCell);
-            Player.Teleport(start, Random.Range(0, 4) * 90f);
-            Chunks.BuildAllNow();
+            PieceSpots.Clear();
+            _pieceCells.Clear();
+
+            Vector3 roomCenter;
+            if (theme.layout == "pit")
+            {
+                Chunks.enabled = false;
+                Pit = PitLevel.Create(theme, seed);
+                roomCenter = Pit.RimSpot;
+                for (int i = 0; i < theme.drumPieces.Length; i++)
+                    PieceSpots[theme.drumPieces[i]] = Pit.PieceSpot(i, theme.drumPieces.Length);
+                foreach (var kv in PieceSpots)
+                    if (!Placed.Contains(kv.Key) && !Carried.Contains(kv.Key)) DrumPickup.Create(Pit.transform, kv.Value, kv.Key);
+            }
+            else
+            {
+                Chunks.enabled = true;
+                PlacePieces(theme, seed);
+                Chunks.Init(Field, _cfg.world);
+                Chunks.Target = Player.transform;
+                Chunks.PieceAt = c => _pieceCells.TryGetValue(c, out var id) && !Placed.Contains(id) && !Carried.Contains(id) && State != Mode.Menu ? id : null;
+                roomCenter = Field.CellCenter(Field.StartCell);
+            }
+            if (attract)
+            {
+                Player.Teleport(roomCenter + new Vector3(0, 0, -3f), Random.Range(0, 4) * 90f);
+            }
+            else
+            {
+                Room = AaronRoom.Create(roomCenter, theme.drumPieces);
+                Player.Teleport(roomCenter + new Vector3(0, 0, -3.2f), 0f);
+            }
+            if (theme.layout != "pit") Chunks.BuildAllNow();
             ApplyTheme(theme);
             if (!attract)
             {
                 _director.Begin(Field, theme, Player);
                 _ui.LevelTitle(theme.displayName.ToUpperInvariant(), theme.subtitle);
+                _ui.Toast(LevelIndex == 0
+                    ? "Someone took Aaron's drum set apart and hid it in the Backrooms. He is very angry. Find the pieces. [Q] listen"
+                    : "Aaron came with you. Of course he did. More of his kit is down here.", 8f);
             }
+        }
+
+        /// <summary>Hide this level's drum pieces in a ring of cells around Aaron's corner.</summary>
+        private void PlacePieces(LevelTheme theme, int seed)
+        {
+            int n = theme.drumPieces.Length;
+            for (int i = 0; i < n; i++)
+            {
+                float a = (i / (float)n + Hash.F(seed, i, 0, 41) * 0.6f) * Mathf.PI * 2f;
+                float d = Mathf.Lerp(theme.pieceMinCells, theme.pieceMaxCells, (i + Hash.F(seed, i, 0, 42)) / Mathf.Max(1, n));
+                var cell = Field.StartCell + new Vector2Int(Mathf.RoundToInt(Mathf.Cos(a) * d), Mathf.RoundToInt(Mathf.Sin(a) * d));
+                while (_pieceCells.ContainsKey(cell)) cell += Vector2Int.right;
+                _pieceCells[cell] = theme.drumPieces[i];
+                Field.OpenCells.Add(cell);
+                PieceSpots[theme.drumPieces[i]] = Field.CellCenter(cell);
+            }
+        }
+
+        public void PickUpPiece(string id)
+        {
+            if (!Carried.Contains(id)) Carried.Add(id);
+            _ui.Toast("Got the " + DrumKit.NameOf(id).ToLowerInvariant() + ". Bring it back to Aaron - follow the noise.", 5f);
+        }
+
+        public void DeliverPieces()
+        {
+            foreach (var id in Carried) Placed.Add(id);
+            Carried.Clear();
+        }
+
+        /// <summary>Q: you stop and listen - which way is the nearest piece still missing on this level?</summary>
+        public void Listen()
+        {
+            Vector3 best = default; float bd = float.MaxValue; string bid = null;
+            foreach (var kv in PieceSpots)
+            {
+                if (Placed.Contains(kv.Key) || Carried.Contains(kv.Key)) continue;
+                float d = (kv.Value - Player.transform.position).sqrMagnitude;
+                if (d < bd) { bd = d; best = kv.Value; bid = kv.Key; }
+            }
+            if (bid == null) { _ui.Toast(Carried.Count > 0 ? "Nothing else down here. Take it back to Aaron." : "You hear only Aaron, drumming.", 3f); return; }
+            _ui.PointTo(best, 4f, "a faint ringing - the " + DrumKit.NameOf(bid).ToLowerInvariant());
         }
 
         public void ExitReached()
@@ -153,6 +251,7 @@ namespace Backrooms
             {
                 State = Mode.Won;
                 _director.Clear();
+                if (Room != null) Destroy(Room.gameObject);
                 SetCursor(false);
                 _ui.ShowWin(Stats());
                 yield return Fade(1f, 0f, 1f);
@@ -180,7 +279,7 @@ namespace Backrooms
         {
             int mins = Mathf.FloorToInt(_runTime / 60f), secs = Mathf.FloorToInt(_runTime % 60f);
             var theme = _cfg.levels[LevelIndex];
-            return $"Reached {theme.displayName} - {theme.subtitle}\nTime {mins}:{secs:00}   ·   Walked {Player.DistanceWalked:0} m";
+            return $"Reached {theme.displayName} - {theme.subtitle}\nAaron's drum set: {Placed.Count}/{TotalPieces} pieces\nTime {mins}:{secs:00}   ·   Walked {Player.DistanceWalked:0} m";
         }
 
         public void ToMenu()
@@ -265,6 +364,7 @@ namespace Backrooms
             {
                 Player.Cam.clearFlags = CameraClearFlags.SolidColor;
                 Player.Cam.backgroundColor = t.fogColor * 0.5f;
+                Player.Cam.farClipPlane = t.layout == "pit" ? 450f : 120f;
             }
             _hum.volume = t.humVolume;
             foreach (var l in FindObjectsByType<Light>(FindObjectsSortMode.None))

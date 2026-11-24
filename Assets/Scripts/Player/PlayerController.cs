@@ -32,7 +32,8 @@ namespace Backrooms
         private AudioSource _steps, _heart;
         private bool _grounded, _wasGrounded;
         private Transform _deathLook;
-        private float _shake, _lightCheck, _measured = 1f;
+        private float _shake, _lightCheck, _measured = 1f, _listenCooldown;
+        public float ListenCooldown01 => Mathf.Clamp01(_listenCooldown / Mathf.Max(0.01f, P.listenCooldown));
 
         public static PlayerController Spawn(Vector3 pos, float yaw)
         {
@@ -207,6 +208,15 @@ namespace Backrooms
             _heart.volume = Mathf.Lerp(_heart.volume, Mathf.Clamp01((fear - 0.35f) * 1.6f) * 0.8f, dt * 2f);
             _heart.pitch = 0.9f + fear * 0.6f;
 
+            // ---------------- listen for the nearest drum piece
+            _listenCooldown -= dt;
+            if (ctl && kb.qKey.wasPressedThisFrame && _listenCooldown <= 0f)
+            {
+                _listenCooldown = P.listenCooldown;
+                NoiseSystem.Emit(transform.position, P.noiseListen);   // standing still and listening isn't silent: you hum, you breathe
+                GameBoot.Instance.Listen();
+            }
+
             // ---------------- interact
             InteractPrompt = null;
             if (ctl && Physics.Raycast(Cam.transform.position, Cam.transform.forward, out var hit, P.interactDistance, ~0, QueryTriggerInteraction.Collide))
@@ -250,6 +260,9 @@ namespace Backrooms
 
         public void AddYaw(float degrees) => _yaw += degrees;
 
+        /// <summary>Something horrible happened nearby.</summary>
+        public void SanityHit(float amount) => Sanity = Mathf.Max(0f, Sanity - amount);
+
         public void Shake(float amount) => _shake = Mathf.Max(_shake, amount);
 
         public void Teleport(Vector3 pos, float yaw)
@@ -263,7 +276,7 @@ namespace Backrooms
         public void ResetStats()
         {
             Stamina = P.staminaMax; Battery = P.flashlightBatteryMax; Sanity = P.sanityMax;
-            Dead = false; Flashlight.enabled = false; DistanceWalked = 0;
+            Dead = false; Flashlight.enabled = false; DistanceWalked = 0; _listenCooldown = 0f;
         }
 
         /// <summary>Called by an entity that caught you: the camera turns to face it and the death screen follows.</summary>

@@ -31,8 +31,7 @@
   "loseInterestTime": 7,
   "lifetime": 180,
   "levels": [
-    "level1",
-    "level2"
+    "any"
   ],
   "spawnWeight": 0.7,
   "maxAlive": 1,

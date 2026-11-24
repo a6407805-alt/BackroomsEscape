@@ -19,7 +19,13 @@ namespace Backrooms
         public string nickname = "";
         public string objectClass = "";
         public string description = "";
-        public string behaviour = "hunter";
+        public string behaviour = "hunter";       // hunter | listener | shy | stalker | apparition | trap | noisemaker
+        public string role = "enemy";             // enemy | npc (npcs, like Aaron, are never spawned by the director)
+        public bool harmless = false;             // never kills (apparitions, noisemakers)
+        public string visibility = "always";      // always | flashlight (only visible in your flashlight beam, or when you're losing it)
+        public int groupSize = 1;                 // spawn this many together
+        public float spawnClipTime = 0f;          // play clips.special for this long when it appears (e.g. getting up off the floor)
+        public float sanityDrain = 0f;            // per second while you're within 10 m of it
 
         // model
         public string model = "model.glb";
@@ -48,7 +54,7 @@ namespace Backrooms
         public bool prefersDark = false;         // sees you much further when you're in the dark
 
         // spawning
-        public string[] levels = { "level0" };
+        public string[] levels = { "any" };      // level ids, or "any"; each run rolls a different line-up per level
         public float spawnWeight = 1f;
         public int maxAlive = 1;
         public float minSpawnDistance = 18f;

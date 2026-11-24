@@ -1,0 +1,83 @@
+{
+  "model": "model.glb",
+  "yOffset": 0.0,
+  "role": "enemy",
+  "harmless": true,
+  "visibility": "always",
+  "groupSize": 1,
+  "spawnClipTime": 0.0,
+  "sanityDrain": 0.0,
+  "walkAnimSpeed": 1.0,
+  "runAnimSpeed": 1.0,
+  "turnSpeed": 260,
+  "sightRange": 16,
+  "sightAngle": 130,
+  "hearing": 1.0,
+  "attackRange": 1.3,
+  "killDelay": 0.7,
+  "triggerTime": 5,
+  "phaseThroughWalls": false,
+  "loseInterestTime": 15,
+  "lifetime": 120,
+  "prefersDark": false,
+  "levels": [
+    "any"
+  ],
+  "spawnWeight": 0.8,
+  "maxAlive": 1,
+  "minSpawnDistance": 18,
+  "maxSpawnDistance": 36,
+  "name": "SCP-066",
+  "nickname": "Eric's Toy",
+  "objectClass": "Euclid",
+  "description": "A ball of red yarn and noise. Harmless. It rolls up to you and plays something unbearably loud - and everything that hunts by sound hears it.",
+  "behaviour": "noisemaker",
+  "modelEuler": [
+    0,
+    180,
+    0
+  ],
+  "height": 0.8,
+  "clips": {
+    "idle": "Idle",
+    "walk": "Walk",
+    "run": "Walk",
+    "attack": "Attack",
+    "special": ""
+  },
+  "walkSpeed": 2.2,
+  "runSpeed": 2.2,
+  "sounds": {
+    "ambient": [
+      "Rolling.ogg"
+    ],
+    "alert": [
+      "Beethoven.ogg",
+      "Notes1.ogg",
+      "Notes2.ogg",
+      "Notes3.ogg",
+      "Notes4.ogg",
+      "Notes5.ogg",
+      "Notes6.ogg"
+    ],
+    "chase": [],
+    "attack": [],
+    "idleLines": [
+      "Eric1.ogg",
+      "Eric2.ogg",
+      "Eric3.ogg"
+    ],
+    "volume": 1.0
+  },
+  "credit": {
+    "article": "SCP-066 - Eric's Toy",
+    "author": "Scantron",
+    "articleUrl": "https://scp-wiki.wikidot.com/scp-066",
+    "assets": "SCP - Containment Breach (github.com/Regalis11/scpcb)",
+    "assetAuthors": "Joonas Rikkonen (\"Regalis\") and the SCP-CB contributors",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "changes": "Model converted from .b3d to glTF, animations split into clips; behaviour rewritten for this game."
+  },
+  "id": "scp-066"
+}

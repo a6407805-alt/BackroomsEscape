@@ -1,0 +1,4 @@
+Aaron
+Model, animations and sounds from SCP - Containment Breach (github.com/Regalis11/scpcb) by Joonas Rikkonen ("Regalis") and the SCP-CB contributors (Class-D model), CC BY-SA 3.0.
+Changes: Class-D model converted to glTF and recast as Aaron.
+This folder is licensed under CC BY-SA 3.0: https://creativecommons.org/licenses/by-sa/3.0/

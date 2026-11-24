@@ -1,0 +1,76 @@
+{
+  "model": "model.glb",
+  "yOffset": 0.0,
+  "role": "enemy",
+  "harmless": false,
+  "visibility": "always",
+  "groupSize": 1,
+  "spawnClipTime": 0.0,
+  "sanityDrain": 0.0,
+  "walkAnimSpeed": 1.0,
+  "runAnimSpeed": 1.0,
+  "turnSpeed": 260,
+  "sightRange": 16,
+  "sightAngle": 130,
+  "hearing": 1.0,
+  "attackRange": 1.7,
+  "killDelay": 0.6,
+  "triggerTime": 5,
+  "phaseThroughWalls": false,
+  "loseInterestTime": 15,
+  "lifetime": 90,
+  "prefersDark": false,
+  "levels": [
+    "any"
+  ],
+  "spawnWeight": 0.7,
+  "maxAlive": 1,
+  "minSpawnDistance": 18,
+  "maxSpawnDistance": 36,
+  "name": "SCP-035's Tentacle",
+  "nickname": "Possessive Mask",
+  "objectClass": "Keter",
+  "description": "A corroded tentacle waiting under the floor. You hear whispering before it strikes. Back away from the whispers.",
+  "behaviour": "trap",
+  "modelEuler": [
+    0,
+    0,
+    0
+  ],
+  "height": 2.6,
+  "clips": {
+    "idle": "Idle",
+    "walk": "Walk",
+    "run": "Walk",
+    "attack": "Attack",
+    "special": "Rise"
+  },
+  "sounds": {
+    "ambient": [],
+    "alert": [
+      "TentacleSpawn.ogg"
+    ],
+    "chase": [],
+    "attack": [
+      "TentacleAttack1.ogg",
+      "TentacleAttack2.ogg"
+    ],
+    "idleLines": [
+      "TentacleIdle.ogg",
+      "Whispers1.ogg",
+      "Whispers2.ogg"
+    ],
+    "volume": 1.0
+  },
+  "credit": {
+    "article": "SCP-035 - Possessive Mask",
+    "author": "Kain Pathos Crow",
+    "articleUrl": "https://scp-wiki.wikidot.com/scp-035",
+    "assets": "SCP - Containment Breach (github.com/Regalis11/scpcb)",
+    "assetAuthors": "Joonas Rikkonen (\"Regalis\") and the SCP-CB contributors",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "changes": "Model converted from .b3d to glTF, animations split into clips; behaviour rewritten for this game."
+  },
+  "id": "scp-035-t"
+}

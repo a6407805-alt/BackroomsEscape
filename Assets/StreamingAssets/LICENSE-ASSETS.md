@@ -5,16 +5,24 @@ Everything in `Assets/StreamingAssets/Entities/` (models, animations, sounds, na
 
 - **The SCP Foundation wiki** (https://scp-wiki.wikidot.com), licensed under
   [Creative Commons Attribution-ShareAlike 3.0](https://creativecommons.org/licenses/by-sa/3.0/):
+  - SCP-008 "Zombie Plague" by Lee Byron
+  - SCP-035 "Possessive Mask" by Kain Pathos Crow
   - SCP-049 "Plague Doctor" by Gabriel Jade
+  - SCP-066 "Eric's Toy" by Scantron
   - SCP-096 "The 'Shy Guy'" by Dr Dan
   - SCP-106 "The Old Man" by Dr Gears
+  - SCP-372 "Peripheral Jumper" by Sylocat
+  - SCP-513 "A Cowbell" by beefwit
   - SCP-860 "Blue Key" by Enma Ai
   - SCP-939 "With Many Voices" by Adam Smascher
+  - SCP-966 "Sleep Killer" by Enma Ai
+  - SCP-1048 "Builder Bear" by Researcher Dios
+  - SCP-1499 "The Gas Mask" by Trasknari
 - **SCP - Containment Breach** (https://github.com/Regalis11/scpcb) by Joonas Rikkonen ("Regalis") and contributors,
   licensed under CC BY-SA 3.0. 3D modellers, sound designers, composers and voice actors are listed in
   `SCPCB-CREDITS.txt` and on the in-game Credits screen.
 
-**Changes made:** models converted from Blitz3D `.b3d` to glTF 2.0 (`.glb`) with their skeletons; the single
+Aaron is SCP - Containment Breach's Class-D model, recast. **Changes made:** models converted from Blitz3D `.b3d` to glTF 2.0 (`.glb`) with their skeletons; the single
 animation timeline split into named clips; sounds copied unchanged; behaviour rewritten for this game.
 
 These files are shared under CC BY-SA 3.0. You may copy, share and adapt them, including commercially, as long as

@@ -9,6 +9,7 @@ namespace Backrooms
         public static EntityDirector Instance { get; private set; }
         public bool Enabled = true;
         public readonly List<EntityAgent> Alive = new List<EntityAgent>();
+        public List<string> Roster { get; private set; } = new List<string>();
 
         private MazeField _field;
         private LevelTheme _theme;
@@ -30,13 +31,30 @@ namespace Backrooms
             Clear();
             _field = field; _theme = theme; _player = player;
             _pool.Clear();
+            // everything allowed on this level...
+            var eligible = new List<EntityDef>();
             foreach (var d in EntityLibrary.Instance.Defs)
             {
+                if (d.role == "npc" || d.spawnWeight <= 0) continue;
                 bool listed = theme.entities != null && theme.entities.Length > 0
                     ? System.Array.IndexOf(theme.entities, d.id) >= 0
-                    : d.levels != null && System.Array.IndexOf(d.levels, theme.id) >= 0;
-                if (listed && d.spawnWeight > 0) _pool.Add(d);
+                    : d.levels != null && (System.Array.IndexOf(d.levels, theme.id) >= 0 || System.Array.IndexOf(d.levels, "any") >= 0);
+                if (listed) eligible.Add(d);
             }
+            // ...then roll this run's line-up: a different handful every time
+            int want = theme.rosterSize > 0 ? Mathf.Min(theme.rosterSize, eligible.Count) : eligible.Count;
+            while (_pool.Count < want)
+            {
+                float total = 0f;
+                foreach (var d in eligible) total += d.spawnWeight;
+                float r = Random.value * total;
+                EntityDef pick = eligible[eligible.Count - 1];
+                foreach (var d in eligible) { r -= d.spawnWeight; if (r <= 0f) { pick = d; break; } }
+                _pool.Add(pick);
+                eligible.Remove(pick);
+            }
+            Roster = _pool.ConvertAll(d => d.name);
+            Debug.Log("[Backrooms] " + theme.displayName + " line-up: " + string.Join(", ", Roster));
             _next = Random.Range(theme.spawnIntervalMin, theme.spawnIntervalMax) * 0.5f;   // first one comes a bit sooner
             // start loading the models now so the first spawn doesn't hitch
             foreach (var d in _pool) _ = EntityLibrary.Instance.Model(d);
@@ -96,7 +114,13 @@ namespace Backrooms
             float r = Random.value * total;
             EntityDef pick = options[0];
             foreach (var d in options) { r -= d.spawnWeight; if (r <= 0) { pick = d; break; } }
-            Spawn(pick);
+            var first = Spawn(pick);
+            for (int i = 1; i < pick.groupSize && first != null; i++)
+            {
+                Vector3 p = first.transform.position + new Vector3(Random.Range(-2f, 2f), 0, Random.Range(-2f, 2f));
+                if (GameBoot.Instance.Pit != null) p.y = GameBoot.Instance.Pit.HeightAt(p); else p = _field.CellCenter(_field.CellAt(p));
+                Alive.Add(EntityAgent.Create(pick, _field, _player, p, first.transform.eulerAngles.y));
+            }
         }
 
         public EntityAgent Spawn(EntityDef def)
@@ -114,7 +138,28 @@ namespace Backrooms
         private bool FindSpot(EntityDef def, out Vector3 pos)
         {
             pos = default;
+            var pit = GameBoot.Instance.Pit;
+            if (pit != null)
+            {
+                for (int tries = 0; tries < 20; tries++)
+                {
+                    Vector3 p = pit.RandomSpot(_player.transform.position, def.behaviour == "apparition" ? 6f : def.minSpawnDistance, def.behaviour == "apparition" ? 14f : def.maxSpawnDistance);
+                    if (def.behaviour == "stalker" || def.behaviour == "trap") return Return(p, out pos);
+                    Vector3 vp = _player.Cam.WorldToViewportPoint(p + Vector3.up);
+                    bool onScreen = vp.z > 0 && vp.x > -0.1f && vp.x < 1.1f && vp.y > -0.1f && vp.y < 1.1f;
+                    if (onScreen && !Physics.Linecast(_player.Cam.transform.position, p + Vector3.up, ~0, QueryTriggerInteraction.Ignore)) continue;
+                    return Return(p, out pos);
+                }
+                return false;
+            }
             float S = _field.S;
+            if (def.behaviour == "trap")
+            {
+                // somewhere along the way you're facing
+                var ahead = _field.CellAt(_player.transform.position + _player.transform.forward * Random.Range(10f, 22f));
+                foreach (var (cell, dist) in Pathfinder.Reachable(_field, ahead, 2, 30))
+                    if (!_field.IsExitCell(cell.x, cell.y)) return Return(_field.CellCenter(cell), out pos);
+            }
             int minSteps = Mathf.Max(1, Mathf.RoundToInt(def.minSpawnDistance / S));
             int maxSteps = Mathf.Max(minSteps + 1, Mathf.RoundToInt(def.maxSpawnDistance / S));
             var cells = Pathfinder.Reachable(_field, _field.CellAt(_player.transform.position), maxSteps, 2500);

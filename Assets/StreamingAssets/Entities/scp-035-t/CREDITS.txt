@@ -1,0 +1,5 @@
+SCP-035's Tentacle - Possessive Mask
+Based on "SCP-035 - Possessive Mask" by Kain Pathos Crow (https://scp-wiki.wikidot.com/scp-035), SCP Wiki, CC BY-SA 3.0.
+Model, animations and sounds from SCP - Containment Breach (github.com/Regalis11/scpcb) by Joonas Rikkonen ("Regalis") and the SCP-CB contributors, CC BY-SA 3.0.
+Changes: Model converted from .b3d to glTF, animations split into clips; behaviour rewritten for this game.
+This folder is licensed under CC BY-SA 3.0: https://creativecommons.org/licenses/by-sa/3.0/

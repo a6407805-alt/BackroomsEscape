@@ -12,6 +12,8 @@ namespace Backrooms
     {
         public MazeField Field { get; private set; }
         public Transform Target;
+        /// <summary>Which drum piece (if any) lies in a cell and hasn't been picked up yet.</summary>
+        public System.Func<Vector2Int, string> PieceAt;
 
         private readonly Dictionary<Vector2Int, GameObject> _chunks = new Dictionary<Vector2Int, GameObject>();
         private readonly HashSet<Vector2Int> _collected = new HashSet<Vector2Int>();
@@ -197,6 +199,8 @@ namespace Backrooms
                     var cell = new Vector2Int(x, z);
                     if (Field.IsExitCell(x, z))
                         ExitDoor.Create(root.transform, Field.CellCenter(cell), Field.ExitYawSteps(x, z) * 90f, theme, H);
+                    var piece = PieceAt?.Invoke(cell);
+                    if (piece != null) DrumPickup.Create(root.transform, Field.CellCenter(cell), piece);
                     var pk = Field.PickupAt(x, z);
                     if (pk != PickupKind.None && !_collected.Contains(cell))
                     {

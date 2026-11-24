@@ -11,8 +11,13 @@ namespace Backrooms
     /// <summary>The way out: a door standing on its own in a cell, light pouring out of it, humming so you can find it by ear.</summary>
     public class ExitDoor : MonoBehaviour, IInteractable
     {
-        public string Prompt => "[E] Go through the door";
+        public string Prompt => Locked ? LockedText : "[E] Go through the door";
+        public bool Locked;
+        public string LockedText = "Locked.";
         private Light _glow;
+        private Renderer _lightPanel;
+        private AudioSource _hum;
+        private Material _onMat, _offMat;
 
         public static ExitDoor Create(Transform parent, Vector3 pos, float yaw, LevelTheme theme, float wallH)
         {
@@ -32,7 +37,7 @@ namespace Backrooms
             Box(root.transform, "FrameL", new Vector3(-0.53f, 1.05f, 0), new Vector3(0.08f, 2.1f, 0.3f), frameMat, false);
             Box(root.transform, "FrameR", new Vector3(0.53f, 1.05f, 0), new Vector3(0.08f, 2.1f, 0.3f), frameMat, false);
             Box(root.transform, "FrameT", new Vector3(0, 2.12f, 0), new Vector3(1.14f, 0.08f, 0.3f), frameMat, false);
-            Box(root.transform, "Light", new Vector3(0, 1.05f, 0.05f), new Vector3(0.98f, 2.08f, 0.02f), lightMat, false);
+            var panel = Box(root.transform, "Light", new Vector3(0, 1.05f, 0.05f), new Vector3(0.98f, 2.08f, 0.02f), lightMat, false);
             // the door itself, swung open toward you
             var hinge = new GameObject("Hinge").transform;
             hinge.SetParent(root.transform, false);
@@ -57,10 +62,14 @@ namespace Backrooms
             var a = root.AddComponent<AudioSource>();
             a.clip = ProcAudio.DoorChime(); a.loop = true; a.spatialBlend = 1f; a.rolloffMode = AudioRolloffMode.Logarithmic;
             a.minDistance = 2f; a.maxDistance = 45f; a.volume = 0.8f; a.Play();
+            door._hum = a;
+            door._lightPanel = panel;
+            door._onMat = lightMat;
+            door._offMat = Mats.Lit(new Color(0.05f, 0.05f, 0.05f), null, 0.2f);
             return door;
         }
 
-        private static void Box(Transform parent, string name, Vector3 pos, Vector3 size, Material mat, bool collide)
+        private static Renderer Box(Transform parent, string name, Vector3 pos, Vector3 size, Material mat, bool collide)
         {
             var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
             go.name = name;
@@ -69,14 +78,28 @@ namespace Backrooms
             go.transform.localScale = size;
             go.GetComponent<Renderer>().sharedMaterial = mat;
             if (!collide) Destroy(go.GetComponent<Collider>());
+            return go.GetComponent<Renderer>();
         }
 
         private void Update()
         {
-            if (_glow != null) _glow.intensity = 2.6f + 0.6f * Mathf.PerlinNoise(Time.time * 0.7f, 3f);
+            if (_glow != null)
+            {
+                _glow.enabled = !Locked;
+                _glow.intensity = 2.6f + 0.6f * Mathf.PerlinNoise(Time.time * 0.7f, 3f);
+            }
+            if (_lightPanel != null) _lightPanel.sharedMaterial = Locked ? _offMat : _onMat;
+            if (_hum != null)
+            {
+                if (Locked && _hum.isPlaying) _hum.Stop();
+                else if (!Locked && !_hum.isPlaying) _hum.Play();
+            }
         }
 
-        public void Interact(PlayerController player) => GameBoot.Instance.ExitReached();
+        public void Interact(PlayerController player)
+        {
+            if (!Locked) GameBoot.Instance.ExitReached();
+        }
     }
 
     /// <summary>Batteries for the flashlight and Almond Water (restores sanity and stamina).</summary>

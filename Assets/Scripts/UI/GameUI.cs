@@ -15,7 +15,9 @@ namespace Backrooms
         private Image _fade, _stamina, _battery, _sanity;
         private CanvasGroup _staminaGroup, _batteryGroup, _sanityGroup, _titleGroup;
         private Text _prompt, _levelTitle, _levelSub, _deathTitle, _deathText, _winText, _creditsText, _loadingText, _toast;
-        private float _titleTimer, _toastTimer;
+        private float _titleTimer, _toastTimer, _subTimer, _pointTimer;
+        private Text _objective, _subtitle, _arrow, _arrowLabel, _pauseRoster;
+        private Vector3 _pointAt;
         private RectTransform _creditsScroll;
         private RectTransform _settingsReturn;
         private GameBoot _game;
@@ -67,14 +69,14 @@ namespace Backrooms
             left.raycastTarget = false;
             UIKit.Label(_menu, "BACKROOMS", 104, UIKit.Ink, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(390, -170), new Vector2(700, 130), FontStyle.Bold);
             UIKit.Label(_menu, "E S C A P E", 34, UIKit.Accent, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(395, -285), new Vector2(700, 50), FontStyle.Bold);
-            UIKit.Label(_menu, "You noclipped out of reality. Find a way out.", 22, UIKit.Dim, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(395, -335), new Vector2(700, 40));
+                UIKit.Label(_menu, "Aaron's drum set is in pieces, scattered through the Backrooms. He is very angry.", 22, UIKit.Dim, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(395, -335), new Vector2(700, 40));
             float x = -960 + 120 + 280, y = 40;
             Btn(_menu, "PLAY", new Vector2(x, y), () => _game.StartRun());
             Btn(_menu, "SETTINGS", new Vector2(x, y - 80), () => OpenSettings(_menu));
             Btn(_menu, "CREDITS", new Vector2(x, y - 160), OpenCredits);
             Btn(_menu, "QUIT", new Vector2(x, y - 240), _game.Quit);
             UIKit.Label(_menu, "v" + Application.version + "   ·   SCP content CC BY-SA 3.0 (see Credits)", 16, UIKit.Dim, TextAnchor.LowerLeft, new Vector2(0, 0), new Vector2(0, 0), new Vector2(400, 40), new Vector2(720, 30));
-            UIKit.Label(_menu, "WASD move · SHIFT sprint · CTRL crouch · SPACE jump · F flashlight · E use · ESC pause", 16, UIKit.Dim, TextAnchor.LowerLeft, new Vector2(0, 0), new Vector2(0, 0), new Vector2(400, 70), new Vector2(720, 30));
+            UIKit.Label(_menu, "WASD move · SHIFT sprint · CTRL crouch · SPACE jump · F flashlight · E use · Q listen · ESC pause", 16, UIKit.Dim, TextAnchor.LowerLeft, new Vector2(0, 0), new Vector2(0, 0), new Vector2(400, 70), new Vector2(720, 30));
         }
 
         private static Button Btn(Transform parent, string label, Vector2 pos, UnityEngine.Events.UnityAction a) =>
@@ -116,6 +118,7 @@ namespace Backrooms
             Btn(_pause, "SETTINGS", new Vector2(0, -20), () => OpenSettings(_pause));
             Btn(_pause, "MAIN MENU", new Vector2(0, -100), _game.ToMenu);
             Btn(_pause, "QUIT", new Vector2(0, -180), _game.Quit);
+            _pauseRoster = UIKit.Label(_pause, "", 20, UIKit.Dim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, 120), new Vector2(1400, 60));
         }
 
         private void BuildDeath(Transform root)
@@ -130,7 +133,7 @@ namespace Backrooms
         private void BuildWin(Transform root)
         {
             _win = MakeScreen(root, "Win", true);
-            UIKit.Label(_win, "YOU ESCAPED", 96, UIKit.Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 230), new Vector2(1200, 120), FontStyle.Bold);
+            UIKit.Label(_win, "AARON IS HAPPY", 96, UIKit.Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 230), new Vector2(1200, 120), FontStyle.Bold);
             _winText = UIKit.Label(_win, "", 28, UIKit.Ink, TextAnchor.UpperCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 110), new Vector2(1200, 160));
             Btn(_win, "PLAY AGAIN", new Vector2(0, -80), () => _game.StartRun());
             Btn(_win, "MAIN MENU", new Vector2(0, -160), _game.ToMenu);
@@ -155,7 +158,13 @@ namespace Backrooms
             _titleGroup = title.gameObject.AddComponent<CanvasGroup>();
             _levelTitle = UIKit.Label(title, "", 72, UIKit.Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 30), new Vector2(1200, 90), FontStyle.Bold);
             _levelSub = UIKit.Label(title, "", 30, UIKit.Accent, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, -40), new Vector2(1200, 50));
-            _toast = UIKit.Label(_hud, "", 24, UIKit.Dim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, 140), new Vector2(1200, 40));
+            _toast = UIKit.Label(_hud, "", 24, UIKit.Dim, TextAnchor.MiddleCenter, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, 140), new Vector2(1400, 40));
+            _objective = UIKit.Label(_hud, "", 20, UIKit.Ink, TextAnchor.UpperLeft, new Vector2(0, 1), new Vector2(0, 1), new Vector2(230, -130), new Vector2(420, 220));
+            _objective.supportRichText = true;
+            _subtitle = UIKit.Label(_hud, "", 30, UIKit.Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0, 230), new Vector2(1400, 50), FontStyle.Bold);
+            _subtitle.supportRichText = true;
+            _arrow = UIKit.Label(_hud, "▲", 46, UIKit.Accent, TextAnchor.MiddleCenter, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -90), new Vector2(80, 80), FontStyle.Bold);
+            _arrowLabel = UIKit.Label(_hud, "", 18, UIKit.Dim, TextAnchor.MiddleCenter, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f), new Vector2(0, -145), new Vector2(800, 30));
         }
 
         // ------------------------------------------------------------------ public API
@@ -167,7 +176,24 @@ namespace Backrooms
 
         public void ShowMenu() => ShowOnly(_menu);
         public void ShowHud() => ShowOnly(_hud);
-        public void ShowPause() => ShowOnly(_pause);
+        public void ShowPause()
+        {
+            var roster = EntityDirector.Instance != null ? EntityDirector.Instance.Roster : null;
+            _pauseRoster.text = roster != null && roster.Count > 0 ? "Down here this time: " + string.Join(", ", roster) : "";
+            ShowOnly(_pause);
+        }
+
+        public void Subtitle(string who, string text)
+        {
+            _subtitle.text = "<color=#C9A227>" + who + ":</color> " + text;
+            _subTimer = 4.5f;
+        }
+
+        /// <summary>Show the arrow pointing at a world position for a while (Q - listen).</summary>
+        public void PointTo(Vector3 world, float seconds, string label)
+        {
+            _pointAt = world; _pointTimer = seconds; _arrowLabel.text = label;
+        }
         public void ShowLoading(string text) { _loadingText.text = text; ShowOnly(_loading); }
 
         public void ShowDeath(string killer, string stats)
@@ -229,6 +255,38 @@ namespace Backrooms
             return sb.ToString();
         }
 
+        private void UpdateObjective(PlayerController p)
+        {
+            var g = _game;
+            var sb = new StringBuilder();
+            sb.Append("<b>AARON'S DRUM SET  ").Append(g.Placed.Count).Append('/').Append(g.TotalPieces).Append("</b>\n");
+            foreach (var id in g.LevelPieces)
+            {
+                string mark = g.Placed.Contains(id) ? "<color=#7FBF6A>✓</color> " : g.Carried.Contains(id) ? "<color=#C9A227>▲</color> " : "<color=#8A8466>·</color> ";
+                string name = DrumKit.NameOf(id);
+                sb.Append(mark).Append(g.Placed.Contains(id) ? "<color=#8A8466>" + name + "</color>" : name);
+                if (g.Carried.Contains(id)) sb.Append("  <size=16><color=#8A8466>(carrying)</color></size>");
+                sb.Append('\n');
+            }
+            _objective.text = sb.ToString();
+
+            // arrow: back to Aaron while you carry pieces, or toward what you heard when you listened
+            _pointTimer -= Time.deltaTime;
+            Vector3? target = null;
+            if (_pointTimer > 0f) target = _pointAt;
+            else if (g.Carried.Count > 0 && g.Room != null) { target = g.Room.Position; _arrowLabel.text = "Aaron"; }
+            _arrow.enabled = target.HasValue;
+            _arrowLabel.enabled = target.HasValue;
+            if (target.HasValue)
+            {
+                Vector3 to = target.Value - p.transform.position; to.y = 0;
+                Vector3 fwd = p.Cam.transform.forward; fwd.y = 0;
+                float ang = Vector3.SignedAngle(fwd, to, Vector3.up);
+                _arrow.rectTransform.localRotation = Quaternion.Euler(0, 0, -ang);
+                _arrowLabel.text = (_pointTimer > 0f ? _arrowLabel.text.Split('·')[0].TrimEnd() : "Aaron") + "  ·  " + Mathf.RoundToInt(to.magnitude) + " m";
+            }
+        }
+
         private void Update()
         {
             var p = _game != null ? _game.Player : null;
@@ -242,7 +300,10 @@ namespace Backrooms
                 _sanity.fillAmount = p.Sanity / P.sanityMax;
                 _sanityGroup.alpha = Mathf.MoveTowards(_sanityGroup.alpha, p.Sanity < P.sanityMax - 1f ? 1f : 0.15f, Time.deltaTime * 2f);
                 _prompt.text = p.InteractPrompt ?? "";
+                UpdateObjective(p);
             }
+            _subTimer -= Time.unscaledDeltaTime;
+            if (_subtitle != null) _subtitle.color = new Color(1, 1, 1, Mathf.Clamp01(_subTimer));
             _titleTimer -= Time.unscaledDeltaTime;
             if (_titleGroup != null) _titleGroup.alpha = Mathf.Clamp01(_titleTimer > 4f ? (5f - _titleTimer) : _titleTimer / 1.5f);
             _toastTimer -= Time.unscaledDeltaTime;

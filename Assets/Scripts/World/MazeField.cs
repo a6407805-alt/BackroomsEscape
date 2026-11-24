@@ -16,6 +16,9 @@ namespace Backrooms
         public readonly int ChunkCells;
         public readonly LevelTheme Theme;
         public Vector2Int StartCell = Vector2Int.zero;
+        /// <summary>Cells kept free of walls (where drum pieces lie).</summary>
+        public readonly System.Collections.Generic.HashSet<Vector2Int> OpenCells = new System.Collections.Generic.HashSet<Vector2Int>();
+        private bool Open(int x, int z) => OpenCells.Contains(new Vector2Int(x, z));
 
         private const int SaltWallE = 1, SaltWallN = 2, SaltRoom = 3, SaltPillar = 4, SaltLight = 5, SaltBroken = 6, SaltFlicker = 7,
                           SaltDark = 8, SaltExitX = 9, SaltExitZ = 10, SaltExit = 11, SaltPickup = 12, SaltPickupKind = 13, SaltExitDir = 14;
@@ -63,7 +66,7 @@ namespace Backrooms
         public bool WallE(int x, int z)
         {
             if (!RawE(x, z)) return false;
-            if (IsExitCell(x, z) || IsExitCell(x + 1, z)) return false;
+            if (IsExitCell(x, z) || IsExitCell(x + 1, z) || Open(x, z) || Open(x + 1, z)) return false;
             if (Sealed(x, z) && OpenSide(x, z) == 0) return false;
             if (Sealed(x + 1, z) && OpenSide(x + 1, z) == 2) return false;
             return true;
@@ -72,7 +75,7 @@ namespace Backrooms
         public bool WallN(int x, int z)
         {
             if (!RawN(x, z)) return false;
-            if (IsExitCell(x, z) || IsExitCell(x, z + 1)) return false;
+            if (IsExitCell(x, z) || IsExitCell(x, z + 1) || Open(x, z) || Open(x, z + 1)) return false;
             if (Sealed(x, z) && OpenSide(x, z) == 1) return false;
             if (Sealed(x, z + 1) && OpenSide(x, z + 1) == 3) return false;
             return true;
@@ -92,7 +95,7 @@ namespace Backrooms
         /// <summary>Pillar at the grid corner (x, z) (the corner at the cell's min x/min z).</summary>
         public bool PillarAt(int x, int z)
         {
-            if (NearStart(x, z)) return false;
+            if (NearStart(x, z) || NearStart(x - 1, z - 1)) return false;
             return InHall(x, z) && Hash.F(Seed, x, z, SaltPillar) < Theme.pillarChance * 3f;
         }
 
@@ -158,7 +161,7 @@ namespace Backrooms
         // ------------------------------------------------------------------ pickups
         public PickupKind PickupAt(int x, int z)
         {
-            if (NearStart(x, z) || IsExitCell(x, z)) return PickupKind.None;
+            if (NearStart(x, z) || IsExitCell(x, z) || Open(x, z)) return PickupKind.None;
             if (Hash.F(Seed, x, z, SaltPickup) >= Theme.pickupChance) return PickupKind.None;
             return Hash.F(Seed, x, z, SaltPickupKind) < 0.55f ? PickupKind.Battery : PickupKind.AlmondWater;
         }

@@ -25,7 +25,13 @@ namespace Backrooms
         private float _repath, _stateTime, _age, _sinceSeen, _nextLine, _idleFor;
         private Vector3 _investigate;
         private string _playing;
-        private bool _killed;
+        private bool _killed, _hidden;
+        private Renderer[] _renderers;
+        private Vector3 _home;
+
+        private static PitLevel Pit => GameBoot.Instance != null ? GameBoot.Instance.Pit : null;
+        private static float GroundAt(Vector3 p) => Pit != null ? Pit.HeightAt(p) : 0f;
+        private bool Phase => Def.phaseThroughWalls || Pit != null;   // the pit has no maze: things just come at you
 
         public static EntityAgent Create(EntityDef def, MazeField field, PlayerController player, Vector3 pos, float yaw)
         {
@@ -52,7 +58,15 @@ namespace Backrooms
             var amb = Def.RandomSound(Def.sounds.ambient);
             if (amb != null) { _loop.clip = amb; _loop.Play(); }
             _nextLine = Random.Range(8f, 20f);
-            Enter(Def.behaviour == "stalker" ? State.Spawning : Def.behaviour == "shy" ? State.Idle : State.Wander);
+            _renderers = GetComponentsInChildren<Renderer>();
+            _home = transform.position;
+            switch (Def.behaviour)
+            {
+                case "stalker": Enter(State.Spawning); break;
+                case "shy": case "apparition": Enter(State.Idle); break;
+                case "trap": SetHidden(true); Enter(State.Idle); break;
+                default: Enter(Def.spawnClipTime > 0f ? State.Spawning : State.Wander); break;
+            }
         }
 
         // ------------------------------------------------------------------ helpers
@@ -106,6 +120,25 @@ namespace Backrooms
             _playing = clip;
         }
 
+        private void SetHidden(bool h)
+        {
+            _hidden = h;
+            if (_renderers != null) foreach (var r in _renderers) if (r != null) r.enabled = !h;
+        }
+
+        /// <summary>visibility "flashlight": only shows up inside your beam (or when your sanity is nearly gone).</summary>
+        private void UpdateVisibility()
+        {
+            if (Def.visibility != "flashlight" || Def.behaviour == "trap") return;
+            bool show = _player.Sanity < GameConfig.Current.player.sanityMax * 0.2f;
+            if (!show && _player.Flashlight.enabled)
+            {
+                Vector3 to = transform.position + Vector3.up * Def.height * 0.6f - _player.Flashlight.transform.position;
+                show = to.magnitude < _player.Flashlight.range && Vector3.Angle(_player.Flashlight.transform.forward, to) < _player.Flashlight.spotAngle * 0.5f;
+            }
+            if (show == _hidden) SetHidden(!show);
+        }
+
         private void Say(string[] files)
         {
             var c = Def.RandomSound(files);
@@ -145,7 +178,7 @@ namespace Backrooms
         /// <summary>Is the entity on the player's screen with nothing in between? (sanity, and 096's trigger)</summary>
         public bool VisibleTo(PlayerController p, float maxDist = 40f)
         {
-            if (p == null || p.Cam == null || _anim == null) return false;
+            if (p == null || p.Cam == null || _anim == null || _hidden) return false;
             Vector3 chest = transform.position + Vector3.up * Def.height * 0.75f;
             Vector3 vp = p.Cam.WorldToViewportPoint(chest);
             if (vp.z <= 0 || vp.z > maxDist || vp.x < 0.05f || vp.x > 0.95f || vp.y < 0.05f || vp.y > 0.95f) return false;
@@ -187,7 +220,9 @@ namespace Backrooms
             var want = Quaternion.LookRotation(dir);
             transform.rotation = Quaternion.RotateTowards(transform.rotation, want, Def.turnSpeed * Time.deltaTime);
             float move = Mathf.Min(dist, speed * Time.deltaTime);
-            transform.position = new Vector3(pos.x + dir.x * move, 0f, pos.z + dir.z * move);
+            var np = new Vector3(pos.x + dir.x * move, 0f, pos.z + dir.z * move);
+            np.y = GroundAt(np);
+            transform.position = np;
             return (new Vector3(target.x - transform.position.x, 0, target.z - transform.position.z)).magnitude < 0.6f;
         }
 
@@ -200,6 +235,7 @@ namespace Backrooms
 
         private Vector3 RandomNearbyCell()
         {
+            if (Pit != null) return Pit.RandomSpot(transform.position, 2f, 20f);
             var cells = Pathfinder.Reachable(_field, _field.CellAt(transform.position), 6, 400);
             var c = cells[Random.Range(0, cells.Count)].cell;
             return _field.CellCenter(c);
@@ -212,7 +248,10 @@ namespace Backrooms
             float dt = Time.deltaTime;
             _stateTime += dt; _age += dt;
 
-            if (Current != State.Attack && !_player.Dead && FlatDist < Def.attackRange && Mathf.Abs(_player.transform.position.y - transform.position.y) < 1.5f
+            UpdateVisibility();
+            if (Def.sanityDrain > 0f && !_hidden && FlatDist < 10f) _player.SanityHit(Def.sanityDrain * dt);
+
+            if (!Def.harmless && Def.behaviour != "trap" && Current != State.Attack && !_player.Dead && FlatDist < Def.attackRange && Mathf.Abs(_player.transform.position.y - transform.position.y) < 1.5f
                 && Current != State.Spawning && Current != State.Leaving && !(Def.behaviour == "shy" && Current == State.Idle))
                 Enter(State.Attack);
 
@@ -238,15 +277,28 @@ namespace Backrooms
 
         private void TickSpawning()
         {
+            if (Def.behaviour != "stalker")
+            {
+                // e.g. getting up off the floor
+                if (_stateTime >= Def.spawnClipTime) Enter(State.Wander);
+                return;
+            }
             // rise out of the floor
+            float ground = GroundAt(transform.position);
             float t = Mathf.Clamp01(_stateTime / 2.5f);
-            transform.position = new Vector3(transform.position.x, Mathf.Lerp(-Def.height, 0f, Mathf.SmoothStep(0, 1, t)), transform.position.z);
+            transform.position = new Vector3(transform.position.x, ground + Mathf.Lerp(-Def.height, 0f, Mathf.SmoothStep(0, 1, t)), transform.position.z);
             FacePlayer();
             if (t >= 1f) Enter(State.Chase);
         }
 
         private void TickIdle()
         {
+            switch (Def.behaviour)
+            {
+                case "apparition": TickApparition(); return;
+                case "trap": TickTrap(); return;
+                case "noisemaker": TickNoisemaker(); return;
+            }
             if (Def.behaviour == "shy")
             {
                 // harmless until you look at it
@@ -259,9 +311,10 @@ namespace Backrooms
 
         private void TickWander()
         {
+            if (Def.behaviour == "noisemaker") { TickNoisemaker(); return; }
             if (CheckSenses()) return;
             if (_path == null && _stateTime < 0.1f) _investigate = RandomNearbyCell();
-            if (MoveTo(_investigate, Def.walkSpeed, Def.phaseThroughWalls)) Enter(State.Idle);
+            if (MoveTo(_investigate, Def.walkSpeed, Phase)) Enter(State.Idle);
             if (_stateTime > 20f) Enter(State.Idle);
         }
 
@@ -269,7 +322,7 @@ namespace Backrooms
         {
             if (Def.behaviour == "listener" && NoiseSystem.Heard(transform.position, Def.hearing, 0.3f, out var w)) _investigate = w;
             else if (CheckSenses()) return;
-            if (MoveTo(_investigate, Def.runSpeed, Def.phaseThroughWalls))
+            if (MoveTo(_investigate, Def.runSpeed, Phase))
             {
                 Play(Def.clips.idle, true, 1f);
                 if (_stateTime > 1f) Enter(State.Idle);
@@ -294,6 +347,71 @@ namespace Backrooms
             return false;
         }
 
+        // ------------------------------------------------------------------ the stranger ones
+        /// <summary>Stands at the edge of your vision. Look straight at it and it's gone - and so is some of your sanity.</summary>
+        private void TickApparition()
+        {
+            FacePlayer();
+            if (_hidden) return;
+            Vector3 vp = _player.Cam.WorldToViewportPoint(transform.position + Vector3.up * Def.height * 0.6f);
+            bool lookedAt = vp.z > 0 && Mathf.Abs(vp.x - 0.5f) < 0.18f && Mathf.Abs(vp.y - 0.5f) < 0.3f && VisibleTo(_player, 35f);
+            if (lookedAt || _stateTime > 16f)
+            {
+                if (lookedAt) { _player.SanityHit(10f); _player.Shake(0.3f); Say(Def.sounds.alert); }
+                Destroy(gameObject, 0.05f);
+                SetHidden(true);
+                return;
+            }
+            // when you're not looking, it moves closer
+            if (!VisibleTo(_player, 40f) && _stateTime > 3f && Random.value < Time.deltaTime * 0.6f)
+            {
+                Vector3 back = _player.transform.position - _player.transform.forward * Random.Range(4f, 8f) + _player.transform.right * Random.Range(-5f, 5f);
+                back.y = GroundAt(back);
+                transform.position = back;
+                Say(Def.sounds.idleLines);
+            }
+        }
+
+        /// <summary>Waits under the floor. Get close and it comes up for you.</summary>
+        private void TickTrap()
+        {
+            float d = FlatDist;
+            if (_hidden)
+            {
+                if (d < Def.attackRange + 1.6f)
+                {
+                    SetHidden(false);
+                    Play(Def.clips.special, false, 1.4f);
+                    Say(Def.sounds.alert);
+                    _stateTime = 0f;
+                }
+                return;
+            }
+            FacePlayer();
+            if (_stateTime > 0.9f && !_killed)
+            {
+                if (d < Def.attackRange) { Enter(State.Attack); return; }
+                if (_stateTime > 6f) { Destroy(gameObject); }
+            }
+        }
+
+        /// <summary>Rolls up to you and makes an awful racket - harmless, but everything that hunts by sound hears it.</summary>
+        private void TickNoisemaker()
+        {
+            float d = FlatDist;
+            if (d < 4.5f)
+            {
+                Say(Def.sounds.alert);
+                NoiseSystem.Emit(transform.position, 38f);
+                _player.SanityHit(12f);
+                _player.Shake(0.4f);
+                Enter(State.Leaving);
+                return;
+            }
+            Play(Def.clips.walk, true, Def.walkAnimSpeed);
+            MoveTo(_player.transform.position, Def.walkSpeed, Phase);
+        }
+
         private void TickTriggered()
         {
             FacePlayer();
@@ -307,7 +425,7 @@ namespace Backrooms
             if (sees) { _sinceSeen = 0f; _investigate = _player.transform.position; }
             else _sinceSeen += Time.deltaTime;
             float speed = Def.behaviour == "stalker" ? Def.walkSpeed : Def.runSpeed;
-            MoveTo(_investigate, speed, Def.phaseThroughWalls);
+            MoveTo(_investigate, speed, Phase);
             if (Def.behaviour == "hunter" && _sinceSeen > Def.loseInterestTime) Enter(State.Wander);
         }
 
@@ -317,7 +435,7 @@ namespace Backrooms
             if (!_killed && _stateTime >= Def.killDelay)
             {
                 _killed = true;
-                if (FlatDist < Def.attackRange + 1.2f) _player.Kill(transform, Def.name);
+                if (!Def.harmless && FlatDist < Def.attackRange + 1.2f) _player.Kill(transform, Def.name);
                 else Enter(State.Chase);   // you slipped away mid-swing
             }
         }
@@ -328,10 +446,19 @@ namespace Backrooms
             if (Def.behaviour == "stalker")
             {
                 float t = Mathf.Clamp01(_stateTime / 2.5f);
-                transform.position = new Vector3(transform.position.x, Mathf.Lerp(0f, -Def.height - 0.5f, t), transform.position.z);
+                transform.position = new Vector3(transform.position.x, GroundAt(transform.position) + Mathf.Lerp(0f, -Def.height - 0.5f, t), transform.position.z);
                 if (t >= 1f) Destroy(gameObject);
             }
-            else if (!VisibleTo(_player) || _stateTime > 15f) Destroy(gameObject);
+            else
+            {
+                if (Def.behaviour == "noisemaker")
+                {
+                    Play(Def.clips.walk, true, Def.walkAnimSpeed);
+                    Vector3 away = transform.position + (transform.position - _player.transform.position).normalized * 5f;
+                    MoveTo(away, Def.walkSpeed * 1.5f, true);
+                }
+                if (!VisibleTo(_player) || _stateTime > 15f) Destroy(gameObject);
+            }
         }
     }
 }
