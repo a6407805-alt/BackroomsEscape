@@ -88,6 +88,38 @@ namespace Backrooms
             return s;
         }
 
+        /// <summary>A "label   < value >" row for picking one of several options.</summary>
+        public static void Cycle(Transform parent, string label, Vector2 pos, string[] options, int index, Action<int> onChange)
+        {
+            var row = RT(parent, label, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, new Vector2(700, 56));
+            Label(row, label, 26, Ink, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(0, 1), new Vector2(110, 0), new Vector2(220, 0));
+            int i = Mathf.Clamp(index, 0, Mathf.Max(0, options.Length - 1));
+            var value = Label(row, options.Length > 0 ? options[i] : "", 24, Accent, TextAnchor.MiddleCenter, new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(410, 0), new Vector2(260, 40), FontStyle.Bold);
+            void Step(int d)
+            {
+                if (options.Length == 0) return;
+                i = (i + d + options.Length) % options.Length;
+                value.text = options[i];
+                onChange(i);
+            }
+            Arrow(row, "<", new Vector2(250, 0), () => Step(-1));
+            Arrow(row, ">", new Vector2(570, 0), () => Step(1));
+        }
+
+        private static void Arrow(Transform row, string glyph, Vector2 x, UnityAction a)
+        {
+            var img = Img(row, glyph, Color.white, new Vector2(0, 0.5f), new Vector2(0, 0.5f), x, new Vector2(44, 44));
+            var b = img.gameObject.AddComponent<Button>();
+            var colors = b.colors;
+            colors.normalColor = new Color(1, 1, 1, 0.08f);
+            colors.highlightedColor = new Color(Accent.r, Accent.g, Accent.b, 0.35f);
+            colors.pressedColor = new Color(Accent.r, Accent.g, Accent.b, 0.6f);
+            colors.selectedColor = new Color(1, 1, 1, 0.08f);
+            b.colors = colors;
+            Label(img.transform, glyph, 28, Ink, TextAnchor.MiddleCenter, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, FontStyle.Bold);
+            b.onClick.AddListener(a);
+        }
+
         /// <summary>Thin horizontal meter, anchored bottom-left.</summary>
         public static Image Meter(Transform parent, string label, Vector2 pos, Color c, out CanvasGroup group)
         {

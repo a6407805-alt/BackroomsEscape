@@ -68,7 +68,6 @@ namespace Backrooms
             Instance = this;
             _cfg = GameConfig.Load();
             AudioListener.volume = PlayerPrefs.GetFloat("vol", 0.8f);
-            QualitySettings.vSyncCount = 1;
 
             _library = new GameObject("Entities").AddComponent<EntityLibrary>();
             _library.transform.SetParent(transform, false);
@@ -85,6 +84,7 @@ namespace Backrooms
             BuildPostProcessing();
             Player = PlayerController.Spawn(Vector3.zero, 0f);
             Player.ControlsEnabled = false;
+            GraphicsOptions.ApplyAll();
         }
 
         private IEnumerator Start()
@@ -343,6 +343,8 @@ namespace Backrooms
                 if (State == Mode.Playing) SetPaused(true);
                 else if (State == Mode.Paused) SetPaused(false);
             }
+            if (kb != null && (kb.f11Key.wasPressedThisFrame || ((kb.leftAltKey.isPressed || kb.rightAltKey.isPressed) && kb.enterKey.wasPressedThisFrame)))
+                GraphicsOptions.ToggleFullscreen();
             if (State == Mode.Playing) _runTime += Time.deltaTime;
             if (State == Mode.Menu && Player != null) Player.AddYaw(Time.deltaTime * 4f);   // slow look-around behind the menu
             if (State == Mode.Playing && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
@@ -395,6 +397,17 @@ namespace Backrooms
             _lens.intensity.Override(0f);
             _volume.sharedProfile = profile;
             ApplyBrightness();
+        }
+
+        private bool _effects = true;
+
+        /// <summary>Settings: film grain, chromatic aberration and lens distortion on or off (fear effects included).</summary>
+        public void ApplyEffects(bool on)
+        {
+            _effects = on;
+            if (_grain != null) _grain.active = on;
+            if (_chroma != null) _chroma.active = on;
+            if (_lens != null) _lens.active = on;
         }
 
         public void ApplyBrightness()

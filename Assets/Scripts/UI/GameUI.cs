@@ -40,6 +40,7 @@ namespace Backrooms
                 es.transform.SetParent(transform, false);
             }
             Transform root = cgo.transform;
+            _root = root;
 
             BuildHud(root);
             BuildMenu(root);
@@ -82,20 +83,66 @@ namespace Backrooms
         private static Button Btn(Transform parent, string label, Vector2 pos, UnityEngine.Events.UnityAction a) =>
             UIKit.Btn(parent, label, pos, new Vector2(460, 64), a, 32);
 
+        private Transform _root;
+
         private void BuildSettings(Transform root)
         {
             _settings = MakeScreen(root, "Settings", true);
-            UIKit.Label(_settings, "SETTINGS", 60, UIKit.Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 300), new Vector2(800, 80), FontStyle.Bold);
+            UIKit.Label(_settings, "SETTINGS", 60, UIKit.Ink, TextAnchor.MiddleCenter, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0, 430), new Vector2(800, 80), FontStyle.Bold);
             var P = GameConfig.Current.player;
-            UIKit.Slide(_settings, "Mouse sensitivity", new Vector2(0, 160), 0.02f, 0.5f, PlayerPrefs.GetFloat("sens", P.mouseSensitivity),
+            float L = -470f, R = 470f, y0 = 320f, dy = 62f;
+
+            // ---- left: controls & sound
+            UIKit.Label(_settings, "CONTROLS & SOUND", 22, UIKit.Accent, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(L, y0 + 50), new Vector2(700, 30), FontStyle.Bold);
+            UIKit.Slide(_settings, "Mouse sensitivity", new Vector2(L, y0), 0.02f, 0.5f, PlayerPrefs.GetFloat("sens", P.mouseSensitivity),
                 v => PlayerPrefs.SetFloat("sens", v), v => v.ToString("0.00"));
-            UIKit.Slide(_settings, "Field of view", new Vector2(0, 80), 60f, 100f, PlayerPrefs.GetFloat("fov", P.fov),
+            UIKit.Slide(_settings, "Field of view", new Vector2(L, y0 - dy), 60f, 100f, PlayerPrefs.GetFloat("fov", P.fov),
                 v => { PlayerPrefs.SetFloat("fov", v); if (_game.Player != null) _game.Player.Cam.fieldOfView = v; }, v => v.ToString("0"));
-            UIKit.Slide(_settings, "Volume", new Vector2(0, 0), 0f, 1f, PlayerPrefs.GetFloat("vol", 0.8f),
+            UIKit.Slide(_settings, "Volume", new Vector2(L, y0 - dy * 2), 0f, 1f, PlayerPrefs.GetFloat("vol", 0.8f),
                 v => { PlayerPrefs.SetFloat("vol", v); AudioListener.volume = v; }, v => Mathf.RoundToInt(v * 100) + "%");
-            UIKit.Slide(_settings, "Brightness", new Vector2(0, -80), 0.6f, 1.6f, PlayerPrefs.GetFloat("bright", 1f),
+            UIKit.Slide(_settings, "Brightness", new Vector2(L, y0 - dy * 3), 0.6f, 1.6f, PlayerPrefs.GetFloat("bright", 1f),
                 v => { PlayerPrefs.SetFloat("bright", v); _game.ApplyBrightness(); }, v => Mathf.RoundToInt(v * 100) + "%");
-            Btn(_settings, "BACK", new Vector2(0, -260), () => { PlayerPrefs.Save(); ShowOnly(_settingsReturn); });
+            UIKit.Cycle(_settings, "Head bob", new Vector2(L, y0 - dy * 4), GraphicsOptions.OnOff, GraphicsOptions.HeadBob, i => GraphicsOptions.HeadBob = i);
+            UIKit.Label(_settings, "F11 or Alt+Enter switches between a window and fullscreen at any time.", 18, UIKit.Dim, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(L, y0 - dy * 5), new Vector2(700, 30));
+
+            // ---- right: display & graphics
+            UIKit.Label(_settings, "DISPLAY & GRAPHICS", 22, UIKit.Accent, TextAnchor.MiddleLeft, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(R, y0 + 50), new Vector2(700, 30), FontStyle.Bold);
+            var resList = GraphicsOptions.Resolutions();
+            string cur = GraphicsOptions.CurrentRes();
+            if (!resList.Contains(cur)) resList.Add(cur);
+            var res = resList.ToArray();
+            UIKit.Cycle(_settings, "Display mode", new Vector2(R, y0), GraphicsOptions.Modes, GraphicsOptions.Mode,
+                i => { GraphicsOptions.Mode = i; GraphicsOptions.ApplyDisplay(); });
+            UIKit.Cycle(_settings, "Resolution", new Vector2(R, y0 - dy), res, System.Array.IndexOf(res, cur),
+                i => { GraphicsOptions.Res = res[i]; GraphicsOptions.ApplyDisplay(); });
+            UIKit.Cycle(_settings, "Quality preset", new Vector2(R, y0 - dy * 2), GraphicsOptions.Presets, GraphicsOptions.Preset,
+                i => { GraphicsOptions.ApplyPreset(i); GraphicsOptions.ApplyQuality(); RebuildSettings(); });
+            UIKit.Slide(_settings, "Render scale", new Vector2(R, y0 - dy * 3), 0.5f, 1f, GraphicsOptions.Scale,
+                v => { GraphicsOptions.Scale = v; GraphicsOptions.ApplyQuality(); }, v => Mathf.RoundToInt(v * 100) + "%");
+            UIKit.Cycle(_settings, "Anti-aliasing", new Vector2(R, y0 - dy * 4), GraphicsOptions.AAs, GraphicsOptions.AA,
+                i => { GraphicsOptions.AA = i; GraphicsOptions.ApplyQuality(); });
+            UIKit.Cycle(_settings, "Shadows", new Vector2(R, y0 - dy * 5), GraphicsOptions.ShadowOpts, GraphicsOptions.Shadows,
+                i => { GraphicsOptions.Shadows = i; GraphicsOptions.ApplyQuality(); });
+            UIKit.Cycle(_settings, "Draw distance", new Vector2(R, y0 - dy * 6), GraphicsOptions.Distances, GraphicsOptions.Distance,
+                i => { GraphicsOptions.Distance = i; GraphicsOptions.ApplyQuality(); });
+            UIKit.Cycle(_settings, "Screen effects", new Vector2(R, y0 - dy * 7), GraphicsOptions.OnOff, GraphicsOptions.Effects,
+                i => { GraphicsOptions.Effects = i; GraphicsOptions.ApplyQuality(); });
+            UIKit.Cycle(_settings, "V-Sync", new Vector2(R, y0 - dy * 8), GraphicsOptions.OnOff, GraphicsOptions.VSync,
+                i => { GraphicsOptions.VSync = i; GraphicsOptions.ApplyQuality(); });
+            UIKit.Cycle(_settings, "Frame limit", new Vector2(R, y0 - dy * 9), GraphicsOptions.FpsOpts, GraphicsOptions.Fps,
+                i => { GraphicsOptions.Fps = i; GraphicsOptions.ApplyQuality(); });
+
+            Btn(_settings, "BACK", new Vector2(0, -420), () => { PlayerPrefs.Save(); ShowOnly(_settingsReturn); });
+        }
+
+        /// <summary>Redraw the settings screen (after a preset changed the values under it).</summary>
+        private void RebuildSettings()
+        {
+            int index = _settings.GetSiblingIndex();
+            Destroy(_settings.gameObject);
+            BuildSettings(_root);
+            _settings.SetSiblingIndex(index);
+            ShowOnly(_settings);
         }
 
         private void BuildCredits(Transform root)

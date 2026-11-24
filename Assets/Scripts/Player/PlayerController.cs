@@ -178,7 +178,7 @@ namespace Backrooms
                 }
             }
             else _bob = Mathf.MoveTowards(_bob, Mathf.Round(_bob / Mathf.PI) * Mathf.PI, dt * 3f);
-            float bobAmt = P.headBobAmount * (Sprinting ? 1.6f : Crouching ? 0.5f : 1f);
+            float bobAmt = P.headBobAmount * (Sprinting ? 1.6f : Crouching ? 0.5f : 1f) * GraphicsOptions.HeadBob;
             Vector3 headPos = new Vector3(Mathf.Cos(_bob) * bobAmt * 0.5f, _height - P.eyeOffset + Mathf.Abs(Mathf.Sin(_bob)) * bobAmt, 0);
             _shake = Mathf.MoveTowards(_shake, 0f, dt);
             if (_shake > 0) headPos += Random.insideUnitSphere * _shake * 0.05f;
