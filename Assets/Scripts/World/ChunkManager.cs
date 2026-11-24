@@ -15,7 +15,9 @@ namespace Backrooms
 
         private readonly Dictionary<Vector2Int, GameObject> _chunks = new Dictionary<Vector2Int, GameObject>();
         private readonly HashSet<Vector2Int> _collected = new HashSet<Vector2Int>();
+        private readonly Dictionary<Vector2Int, Pickup> _spawnedPickups = new Dictionary<Vector2Int, Pickup>();
         private readonly List<Light> _lights = new List<Light>();
+        public IReadOnlyList<Light> ActiveLights => _lights;
         private Material _wallMat, _floorMat, _ceilMat, _panelOn, _panelOff, _pillarMat, _trimMat;
         private WorldSettings _ws;
         private float _lightTick;
@@ -35,7 +37,20 @@ namespace Backrooms
         }
 
         public bool IsCollected(Vector2Int cell) => _collected.Contains(cell);
-        public void MarkCollected(Vector2Int cell) => _collected.Add(cell);
+        public void MarkCollected(Vector2Int cell)
+        {
+            _collected.Add(cell);
+            _spawnedPickups.Remove(cell);
+            BackroomsNet.Instance?.NotifyPickupTaken(cell);
+        }
+
+        public void MarkCollectedFromNet(Vector2Int cell)
+        {
+            _collected.Add(cell);
+            if (_spawnedPickups.TryGetValue(cell, out var pk) && pk != null)
+                Destroy(pk.gameObject);
+            _spawnedPickups.Remove(cell);
+        }
 
         public void Clear()
         {
@@ -43,6 +58,7 @@ namespace Backrooms
             _chunks.Clear();
             _lights.Clear();
             _collected.Clear();
+            _spawnedPickups.Clear();
         }
 
         private void Update()
@@ -202,7 +218,7 @@ namespace Backrooms
                     {
                         Vector3 cc = Field.CellCenter(cell);
                         float ox = (Hash.F(Field.Seed, x, z, 31) - 0.5f) * S * 0.5f, oz = (Hash.F(Field.Seed, x, z, 32) - 0.5f) * S * 0.5f;
-                        Pickup.Create(root.transform, cc + new Vector3(ox, 0, oz), pk, cell, this);
+                        _spawnedPickups[cell] = Pickup.Create(root.transform, cc + new Vector3(ox, 0, oz), pk, cell, this);
                     }
                 }
 

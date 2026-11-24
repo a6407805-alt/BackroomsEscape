@@ -76,7 +76,11 @@ namespace Backrooms
             if (_glow != null) _glow.intensity = 2.6f + 0.6f * Mathf.PerlinNoise(Time.time * 0.7f, 3f);
         }
 
-        public void Interact(PlayerController player) => GameBoot.Instance.ExitReached();
+        public void Interact(PlayerController player)
+        {
+            if (BackroomsNet.IsClient) BackroomsNet.Instance.NotifyExitUsed();
+            else GameBoot.Instance.ExitReached();
+        }
     }
 
     /// <summary>Batteries for the flashlight and Almond Water (restores sanity and stamina).</summary>

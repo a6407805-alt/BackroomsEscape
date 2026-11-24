@@ -56,6 +56,43 @@ namespace Backrooms.EditorTools
             w.minSize = new Vector2(520, 560);
         }
 
+        /// <summary>Headless CLI build entry point (-executeMethod Backrooms.EditorTools.BackroomsPublisher.BuildCli).</summary>
+        public static void BuildCli()
+        {
+            BackroomsProjectSetup.RepairFromCli();
+            PlayerSettings.bundleVersion = "0.2.0";
+            AssetDatabase.SaveAssets();
+
+            int catalogCount = ScpCatalog.BuildAll().Count;
+            Debug.Log($"[BackroomsEscape CLI] ScpCatalog verified: {catalogCount} procedural SCPs (+ 5 glTF = {catalogCount + 5} total).");
+
+            if (Directory.Exists(BuildDir)) Directory.Delete(BuildDir, true);
+            Directory.CreateDirectory(BuildDir);
+            var scenes = new List<string>();
+            foreach (var s in EditorBuildSettings.scenes) if (s.enabled) scenes.Add(s.path);
+            if (scenes.Count == 0) scenes.Add("Assets/Scenes/Main.unity");
+
+            var options = new BuildPlayerOptions
+            {
+                scenes = scenes.ToArray(),
+                locationPathName = Path.Combine(BuildDir, ExeName),
+                target = BuildTarget.StandaloneWindows64,
+                options = BuildOptions.None
+            };
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                Debug.LogError("[BackroomsEscape CLI] Build failed: " + report.summary.result);
+                EditorApplication.Exit(1);
+                return;
+            }
+            foreach (string d in Directory.GetDirectories(BuildDir, "*DoNotShip")) Directory.Delete(d, true);
+            string zipPath = Path.Combine("Builds", ZipName);
+            if (File.Exists(zipPath)) File.Delete(zipPath);
+            ZipFile.CreateFromDirectory(BuildDir, zipPath, System.IO.Compression.CompressionLevel.Optimal, false);
+            Debug.Log("[BackroomsEscape CLI] Built & zipped " + zipPath + " (" + (new FileInfo(zipPath).Length / 1048576f).ToString("0.00") + " MB)");
+        }
+
         [MenuItem("Backrooms/Capture Launcher Art (Play mode) %#&k", priority = 1)]   // Ctrl+Shift+Alt+K
         private static void CaptureArt()
         {

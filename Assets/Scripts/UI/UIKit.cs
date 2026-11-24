@@ -102,6 +102,30 @@ namespace Backrooms
             return fill;
         }
 
+        public static InputField Input(Transform parent, string label, string initial, string placeholder, Vector2 pos, Action<string> onChanged)
+        {
+            var row = RT(parent, label, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), pos, new Vector2(720, 62));
+            Label(row, label, 24, Dim, TextAnchor.MiddleLeft, new Vector2(0, 0), new Vector2(0, 1), new Vector2(120, 0), new Vector2(240, 0), FontStyle.Bold);
+            var box = Img(row, "Box", new Color(0.11f, 0.10f, 0.06f, 0.95f), new Vector2(0, 0.5f), new Vector2(0, 0.5f), new Vector2(475, 0), new Vector2(450, 48));
+            var border = Img(box.transform, "Bar", Accent, new Vector2(0, 0), new Vector2(0, 1), Vector2.zero, new Vector2(4, 0), new Vector2(0, 0.5f));
+            border.raycastTarget = false;
+
+            var ph = Label(box.transform, placeholder, 22, new Color(Dim.r, Dim.g, Dim.b, 0.45f), TextAnchor.MiddleLeft, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, FontStyle.Italic);
+            ph.rectTransform.offsetMin = new Vector2(16, 4); ph.rectTransform.offsetMax = new Vector2(-12, -4);
+
+            var txt = Label(box.transform, "", 24, Ink, TextAnchor.MiddleLeft, Vector2.zero, Vector2.one, Vector2.zero, Vector2.zero, FontStyle.Bold);
+            txt.rectTransform.offsetMin = new Vector2(16, 4); txt.rectTransform.offsetMax = new Vector2(-12, -4);
+            txt.horizontalOverflow = HorizontalWrapMode.Overflow;
+
+            var input = box.gameObject.AddComponent<InputField>();
+            input.textComponent = txt;
+            input.placeholder = ph;
+            input.targetGraphic = box;
+            input.text = initial ?? "";
+            if (onChanged != null) input.onValueChanged.AddListener(v => onChanged(v));
+            return input;
+        }
+
         private static Sprite _white;
         public static Sprite WhiteSprite
         {
