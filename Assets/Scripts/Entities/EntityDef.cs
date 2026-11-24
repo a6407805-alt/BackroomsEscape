@@ -27,8 +27,13 @@ namespace Backrooms
         public float spawnClipTime = 0f;          // play clips.special for this long when it appears (e.g. getting up off the floor)
         public float sanityDrain = 0f;            // per second while you're within 10 m of it
 
-        // model
+        // model (empty model or missing .glb falls back to procedural horror rigArchetype)
         public string model = "model.glb";
+        public string rigArchetype = "";           // crooked | doorman | shadow_wraith | flesh_amalgam | weeping_idol | crawler_quad | ceiling_ambusher | doppelganger | skeletal_titan | ocular_swarm | arachnid | tall_lurker
+        public Color primaryColor = new Color(0.16f, 0.14f, 0.13f, 1f);
+        public Color accentColor = new Color(0.55f, 0.09f, 0.08f, 1f);
+        public Color eyeColor = new Color(1.0f, 0.88f, 0.65f, 1f);
+        public float eyeGlow = 2.4f;
         public float[] modelEuler = { 0, 0, 0 };   // rotation applied to the model so it stands up and faces +Z
         public float height = 2f;                  // metres, the model is scaled to this
         public float yOffset = 0f;
@@ -52,6 +57,11 @@ namespace Backrooms
         public float loseInterestTime = 20f;
         public float lifetime = 240f;            // seconds before it leaves (0 = never)
         public bool prefersDark = false;         // sees you much further when you're in the dark
+        public bool stealsVoices = false;        // records & replays player microphone clips to lure teammates
+        public bool flickersLights = false;      // drains/flickers nearby ceiling lights & flashlights
+        public bool freezesWhenWatched = false;  // statue/mannequin horror: moves ONLY when no player looks at it
+        public bool fearsFlashlight = false;     // shadow horror: recoils/freezes under a direct flashlight beam
+        public string audioProfile = "";         // procedural horror SFX profile when .ogg files aren't supplied
 
         // spawning
         public string[] levels = { "any" };      // level ids, or "any"; each run rolls a different line-up per level
@@ -69,7 +79,7 @@ namespace Backrooms
         [NonSerialized] public string Folder;
         [NonSerialized] public readonly Dictionary<string, AudioClip> LoadedSounds = new Dictionary<string, AudioClip>();
 
-        public string ModelPath => Path.Combine(Folder, model);
+        public string ModelPath => string.IsNullOrEmpty(Folder) || string.IsNullOrEmpty(model) ? "" : Path.Combine(Folder, model);
 
         public AudioClip Sound(string file)
         {

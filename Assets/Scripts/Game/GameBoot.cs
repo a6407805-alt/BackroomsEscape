@@ -8,12 +8,12 @@ using UnityEngine.Rendering.Universal;
 namespace Backrooms
 {
     /// <summary>
-    /// The whole game hangs off this one object (scene "Main"): loads config and entities, runs the menu, builds levels,
-    /// handles exits, death, the escape, pause and post-processing.
+    /// Root game controller (scene "Main"): loads config and the 350+ rotating SCP catalog, runs Solo &amp; Co-Op flows,
+    /// deterministic level generation, live microphone voice mimicry, exits, death, escape, pause and URP horror post-FX.
     /// </summary>
     public class GameBoot : MonoBehaviour
     {
-        public enum Mode { Boot, Menu, Playing, Paused, Transition, Dead, Won }
+        public enum Mode : byte { Boot = 0, Menu = 1, Playing = 2, Paused = 3, Transition = 4, Dead = 5, Won = 6 }
 
         public static GameBoot Instance { get; private set; }
         public Mode State { get; private set; } = Mode.Boot;
@@ -40,11 +40,14 @@ namespace Backrooms
         /// <summary>Where each of this level's pieces lies (cell for maze levels, world position for the pit).</summary>
         public readonly Dictionary<string, Vector3> PieceSpots = new Dictionary<string, Vector3>();
         private readonly Dictionary<Vector2Int, string> _pieceCells = new Dictionary<Vector2Int, string>();
+        public int RunSeed => _runSeed;
 
         private GameConfig _cfg;
         private GameUI _ui;
         private EntityDirector _director;
         private EntityLibrary _library;
+        private BackroomsNet _net;
+        private VoiceMimicSystem _voice;
         private AudioSource _hum;
         private Volume _volume;
         private Vignette _vignette;
@@ -55,7 +58,6 @@ namespace Backrooms
         private int _runSeed;
         private float _runTime;
 
-        /// <summary>Make sure the game exists even if someone opens an empty scene.</summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         private static void Ensure()
         {
@@ -66,6 +68,7 @@ namespace Backrooms
         {
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
+            Application.runInBackground = true; // critical for Co-Op & proximity voice
             _cfg = GameConfig.Load();
             AudioListener.volume = PlayerPrefs.GetFloat("vol", 0.8f);
 
@@ -73,6 +76,10 @@ namespace Backrooms
             _library.transform.SetParent(transform, false);
             _director = new GameObject("Director").AddComponent<EntityDirector>();
             _director.transform.SetParent(transform, false);
+            _net = new GameObject("CoopNet").AddComponent<BackroomsNet>();
+            _net.transform.SetParent(transform, false);
+            _voice = new GameObject("VoiceMimic").AddComponent<VoiceMimicSystem>();
+            _voice.transform.SetParent(transform, false);
             Chunks = new GameObject("World").AddComponent<ChunkManager>();
             _ui = new GameObject("GameUI").AddComponent<GameUI>();
             _ui.transform.SetParent(transform, false);
@@ -89,13 +96,13 @@ namespace Backrooms
 
         private IEnumerator Start()
         {
-            _ui.ShowLoading("Loading...");
+            _ui.ShowLoading("Loading 350+ SCP Containment Archives...");
             _ui.SetFade(0f);
             yield return _library.LoadAll();
             EnterMenu();
         }
 
-        // ------------------------------------------------------------------ flow
+        // ------------------------------------------------------------------ Solo & Co-Op Flow
         private void EnterMenu()
         {
             State = Mode.Menu;
@@ -108,25 +115,103 @@ namespace Backrooms
             SetCursor(false);
         }
 
-        public void StartRun() => StartCoroutine(StartRunCo());
+        public void StartSoloRun()
+        {
+            _net.StopNetwork();
+            StartRun();
+        }
+
+        public void StartCoopHost()
+        {
+            _ui.ShowLoading("Opening Co-Op Room...");
+            _net.StartHost(() => StartRun());
+        }
+
+        public void StartRun()
+        {
+            if (BackroomsNet.IsClient)
+            {
+                _ui.Toast("WAITING FOR CO-OP HOST TO RESTART RUN...", 3f);
+                return;
+            }
+            StopAllCoroutines();
+            StartCoroutine(StartRunCo());
+        }
 
         private IEnumerator StartRunCo()
         {
             State = Mode.Transition;
             Time.timeScale = 1f;
+            AudioListener.pause = false;
             yield return Fade(0f, 1f, 0.6f);
             _runSeed = _cfg.world.seed != 0 ? _cfg.world.seed : Random.Range(1, int.MaxValue);
             _runTime = 0f;
+            _director.ResetRunDossier();
             Player.ResetStats();
             Placed.Clear();
             Carried.Clear();
             BuildLevel(0, attract: false);
+            if (BackroomsNet.IsHost)
+                _net.BroadcastRunState(_runSeed, LevelIndex, Mode.Playing);
             _ui.ShowHud();
             SetCursor(true);
-            yield return Fade(1f, 0f, 1.2f);
+            yield return Fade(1f, 0f, 1.1f);
             Player.ControlsEnabled = true;
             _director.Enabled = true;
             State = Mode.Playing;
+            AnnounceFloorBreach();
+        }
+
+        public void ApplySyncedRunStateFromHost(int seed, int levelIndex, Mode hostMode, string killer)
+        {
+            StopAllCoroutines();
+            StartCoroutine(ClientSyncCo(seed, levelIndex, hostMode, killer));
+        }
+
+        private IEnumerator ClientSyncCo(int seed, int levelIndex, Mode hostMode, string killer)
+        {
+            Time.timeScale = 1f;
+            AudioListener.pause = false;
+
+            if (hostMode == Mode.Dead)
+            {
+                Player.Kill(null, string.IsNullOrEmpty(killer) ? "CONTAINMENT BREACH" : killer);
+                yield break;
+            }
+            if (hostMode == Mode.Won)
+            {
+                State = Mode.Won;
+                _director.Clear();
+                SetCursor(false);
+                _ui.ShowWin(Stats());
+                _ui.SetFade(0f);
+                yield break;
+            }
+
+            State = Mode.Transition;
+            Player.ControlsEnabled = false;
+            yield return Fade(0f, 1f, 0.4f);
+
+            bool newRun = seed != _runSeed;
+            _runSeed = seed;
+            if (newRun) { _runTime = 0f; _director.ResetRunDossier(); }
+            Player.ResetStats();
+            BuildLevel(levelIndex, attract: false);
+            _ui.ShowHud();
+            SetCursor(true);
+            yield return Fade(1f, 0f, 0.8f);
+            Player.ControlsEnabled = true;
+            _director.Enabled = true;
+            State = Mode.Playing;
+            AnnounceFloorBreach();
+        }
+
+        private void AnnounceFloorBreach()
+        {
+            int total = _library.Defs.Count;
+            int active = _director.ActiveRoster.Count;
+            string coopTag = BackroomsNet.IsOnline ? $"CO-OP ({_net.JoinCode}) · " : "";
+            _ui.Toast($"{coopTag}ROTATING BREACH: {active} ACTIVE SCPs DRAFTED FROM {total} ANOMALIES  [TAB DOSSIER]", 5f);
         }
 
         private void BuildLevel(int index, bool attract)
@@ -170,7 +255,14 @@ namespace Backrooms
             else
             {
                 Room = AaronRoom.Create(roomCenter, theme.drumPieces);
-                Player.Teleport(roomCenter + new Vector3(0, 0, -3.2f), 0f);
+                Vector3 start = roomCenter + new Vector3(0, 0, -3.2f);
+                if (BackroomsNet.IsOnline)
+                {
+                    // co-op: spread the squad out in front of Aaron's kit
+                    int slot = _net.MySlot;
+                    start += new Vector3(((slot % 3) - 1) * 0.9f, 0f, -((slot / 3)) * 0.9f);
+                }
+                Player.Teleport(start, 0f);
             }
             if (theme.layout != "pit") Chunks.BuildAllNow();
             ApplyTheme(theme);
@@ -237,21 +329,27 @@ namespace Backrooms
             State = Mode.Transition;
             Player.ControlsEnabled = false;
             _director.Enabled = false;
-            yield return Fade(0f, 1f, 1.5f);
+            yield return Fade(0f, 1f, 1.4f);
             if (LevelIndex + 1 < _cfg.levels.Length)
             {
+                Player.SetDowned(false, "");
                 BuildLevel(LevelIndex + 1, attract: false);
-                yield return new WaitForSeconds(0.5f);
-                yield return Fade(1f, 0f, 1.5f);
+                if (BackroomsNet.IsHost)
+                    _net.BroadcastRunState(_runSeed, LevelIndex, Mode.Playing);
+                yield return new WaitForSeconds(0.4f);
+                yield return Fade(1f, 0f, 1.3f);
                 Player.ControlsEnabled = true;
                 _director.Enabled = true;
                 State = Mode.Playing;
+                AnnounceFloorBreach();
             }
             else
             {
                 State = Mode.Won;
                 _director.Clear();
                 if (Room != null) Destroy(Room.gameObject);
+                if (BackroomsNet.IsHost)
+                    _net.BroadcastRunState(_runSeed, LevelIndex, Mode.Won);
                 SetCursor(false);
                 _ui.ShowWin(Stats());
                 yield return Fade(1f, 0f, 1f);
@@ -260,7 +358,7 @@ namespace Backrooms
 
         public void PlayerDied(string killer)
         {
-            if (State != Mode.Playing) return;
+            if (State == Mode.Dead) return;
             State = Mode.Dead;
             _director.Enabled = false;
             StartCoroutine(DeathCo(killer));
@@ -279,19 +377,22 @@ namespace Backrooms
         {
             int mins = Mathf.FloorToInt(_runTime / 60f), secs = Mathf.FloorToInt(_runTime % 60f);
             var theme = _cfg.levels[LevelIndex];
-            return $"Reached {theme.displayName} - {theme.subtitle}\nAaron's drum set: {Placed.Count}/{TotalPieces} pieces\nTime {mins}:{secs:00}   ·   Walked {Player.DistanceWalked:0} m";
+            int logged = _director != null ? _director.EncounteredIds.Count : 0;
+            return $"Reached {theme.displayName} - {theme.subtitle}\nAaron's drum set: {Placed.Count}/{TotalPieces} pieces\nTime {mins}:{secs:00}   ·   Walked {Player.DistanceWalked:0} m   ·   SCPs Logged {logged}";
         }
 
         public void ToMenu()
         {
             Time.timeScale = 1f;
+            AudioListener.pause = false;
+            _net.StopNetwork();
             StopAllCoroutines();
             StartCoroutine(ToMenuCo());
         }
 
         private IEnumerator ToMenuCo()
         {
-            yield return Fade(0f, 1f, 0.5f);
+            yield return Fade(0f, 1f, 0.45f);
             Player.ResetStats();
             EnterMenu();
         }
@@ -307,15 +408,23 @@ namespace Backrooms
 
         public void SetPaused(bool paused)
         {
+            bool online = BackroomsNet.IsOnline;
             if (paused && State == Mode.Playing)
             {
-                State = Mode.Paused; Time.timeScale = 0f; AudioListener.pause = true;
-                Player.ControlsEnabled = false; SetCursor(false); _ui.ShowPause();
+                State = Mode.Paused;
+                if (!online) { Time.timeScale = 0f; AudioListener.pause = true; }
+                Player.ControlsEnabled = false;
+                SetCursor(false);
+                _ui.ShowPause();
             }
             else if (!paused && State == Mode.Paused)
             {
-                State = Mode.Playing; Time.timeScale = 1f; AudioListener.pause = false;
-                Player.ControlsEnabled = true; SetCursor(true); _ui.ShowHud();
+                State = Mode.Playing;
+                Time.timeScale = 1f;
+                AudioListener.pause = false;
+                Player.ControlsEnabled = true;
+                SetCursor(true);
+                _ui.ShowHud();
             }
         }
 
@@ -346,13 +455,13 @@ namespace Backrooms
             if (kb != null && (kb.f11Key.wasPressedThisFrame || ((kb.leftAltKey.isPressed || kb.rightAltKey.isPressed) && kb.enterKey.wasPressedThisFrame)))
                 GraphicsOptions.ToggleFullscreen();
             if (State == Mode.Playing) _runTime += Time.deltaTime;
-            if (State == Mode.Menu && Player != null) Player.AddYaw(Time.deltaTime * 4f);   // slow look-around behind the menu
+            if (State == Mode.Menu && Player != null) Player.AddYaw(Time.deltaTime * 4f);
             if (State == Mode.Playing && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame && Cursor.lockState != CursorLockMode.Locked)
                 SetCursor(true);
             UpdateFear();
         }
 
-        // ------------------------------------------------------------------ look & feel
+        // ------------------------------------------------------------------ Look & Feel
         private void ApplyTheme(LevelTheme t)
         {
             RenderSettings.fog = true;
@@ -419,6 +528,7 @@ namespace Backrooms
         {
             if (Player == null || _vignette == null) return;
             float fear = State == Mode.Playing || State == Mode.Dead ? 1f - Player.Sanity / _cfg.player.sanityMax : 0f;
+            if (Player.Downed) fear = Mathf.Max(fear, 0.82f);
             float pulse = 0.5f + 0.5f * Mathf.Sin(Time.time * (2f + fear * 6f));
             _vignette.intensity.Override(0.32f + fear * 0.25f + (fear > 0.6f ? pulse * 0.08f : 0f));
             _grain.intensity.Override(0.25f + fear * 0.5f);

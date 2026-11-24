@@ -56,6 +56,50 @@ namespace Backrooms.EditorTools
             w.minSize = new Vector2(520, 560);
         }
 
+        /// <summary>
+        /// Headless CLI build entry point:
+        /// Unity.exe -batchmode -quit -projectPath . -executeMethod Backrooms.EditorTools.BackroomsPublisher.BuildCli -buildVersion 0.3.0
+        /// Builds Builds/Windows and zips it to Builds/BackroomsEscape-Windows.zip (uploading is separate).
+        /// </summary>
+        public static void BuildCli()
+        {
+            BackroomsProjectSetup.RepairFromCli();
+            var args = System.Environment.GetCommandLineArgs();
+            int vi = System.Array.IndexOf(args, "-buildVersion");
+            if (vi >= 0 && vi + 1 < args.Length) PlayerSettings.bundleVersion = args[vi + 1];
+            AssetDatabase.SaveAssets();
+            Debug.Log("[BackroomsEscape CLI] Building version " + PlayerSettings.bundleVersion);
+
+            int catalogCount = ScpCatalog.BuildAll().Count;
+            Debug.Log($"[BackroomsEscape CLI] ScpCatalog verified: {catalogCount} procedural SCPs (+ glTF SCPs from StreamingAssets/Entities).");
+
+            if (Directory.Exists(BuildDir)) Directory.Delete(BuildDir, true);
+            Directory.CreateDirectory(BuildDir);
+            var scenes = new List<string>();
+            foreach (var s in EditorBuildSettings.scenes) if (s.enabled) scenes.Add(s.path);
+            if (scenes.Count == 0) scenes.Add("Assets/Scenes/Main.unity");
+
+            var options = new BuildPlayerOptions
+            {
+                scenes = scenes.ToArray(),
+                locationPathName = Path.Combine(BuildDir, ExeName),
+                target = BuildTarget.StandaloneWindows64,
+                options = BuildOptions.None
+            };
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            if (report.summary.result != BuildResult.Succeeded)
+            {
+                Debug.LogError("[BackroomsEscape CLI] Build failed: " + report.summary.result);
+                EditorApplication.Exit(1);
+                return;
+            }
+            foreach (string d in Directory.GetDirectories(BuildDir, "*DoNotShip")) Directory.Delete(d, true);
+            string zipPath = Path.Combine("Builds", ZipName);
+            if (File.Exists(zipPath)) File.Delete(zipPath);
+            ZipFile.CreateFromDirectory(BuildDir, zipPath, System.IO.Compression.CompressionLevel.Optimal, false);
+            Debug.Log("[BackroomsEscape CLI] Built & zipped " + zipPath + " (" + (new FileInfo(zipPath).Length / 1048576f).ToString("0.00") + " MB)");
+        }
+
         [MenuItem("Backrooms/Capture Launcher Art (Play mode) %#&k", priority = 1)]   // Ctrl+Shift+Alt+K
         private static void CaptureArt()
         {

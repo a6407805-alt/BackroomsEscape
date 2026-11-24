@@ -29,6 +29,15 @@ line-up (`rosterSize`) every level/run.
 - `Launcher/` + `.github/workflows/launcher.yml` - the IronFauna launcher, renamed (repo a6407805-alt/BackroomsEscape, `BackroomsEscape-Launcher.exe`, `BackroomsEscape-Windows.zip`, `%LOCALAPPDATA%\BackroomsEscape`).
 - `Tools/Converters/b3d2glb.py` - SCP:CB .b3d → .glb converter (see its README).
 
+## v0.2.0 (Antigravity) merged in v0.3.0
+- `Net/BackroomsNet` co-op (Unity Relay join codes + direct UDP/LAN, host-authoritative entities, downed/revive), `Net/RemotePlayerAvatar`.
+- `Player/VoiceMimicSystem` - live mic: monsters hear you, voice-stealing SCPs replay your clips to bait the squad. V mutes.
+- `Entities/ScpCatalog` (350+ procedural SCP defs) + `ProceduralScpRig` (code-built bodies/audio). The director drafts 18 per floor from
+  the floor seed (same on host and clients): `rosterSize` real CB glTF SCPs + voice mimics + freeze-when-watched + light-fearers + fill.
+- Merge rules: Aaron (`role: npc`) is never drafted; `levels: ["any"]` matches every floor incl. the Porcelain Pit.
+- Drum-set progress (Placed/Carried) is local per player, not synced over the network yet.
+- Builds: `Unity.exe -batchmode -quit -projectPath <dir> -executeMethod Backrooms.EditorTools.BackroomsPublisher.BuildCli -buildVersion X -logFile Builds/unity-build.log`, then upload zip + release-info.json + patch-notes.json to the `latest` release.
+
 ## Entity model notes
 - Converted CB models face glTF -Z: humanoids use `modelEuler [0,180,0]`; 939 and 860-2 are animated Z-up in CB (CB pitches them -90) so they use `[90,180,0]` - verify in game and adjust in entity.json.
 - UVs from assimp are already top-left; do not flip (checked with uvtest.py).

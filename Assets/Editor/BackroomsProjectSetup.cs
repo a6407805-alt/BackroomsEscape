@@ -29,6 +29,8 @@ namespace Backrooms.EditorTools
         [MenuItem("Backrooms/Repair Project Setup", priority = 20)]
         private static void Repair() => Run(true);
 
+        public static void RepairFromCli() => Run(true);
+
         [MenuItem("Backrooms/Open Entities Folder", priority = 21)]
         private static void OpenEntities()
         {

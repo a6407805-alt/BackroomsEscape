@@ -98,7 +98,9 @@ namespace Backrooms
 
         public void Interact(PlayerController player)
         {
-            if (!Locked) GameBoot.Instance.ExitReached();
+            if (Locked) return;
+            if (BackroomsNet.IsClient) BackroomsNet.Instance.NotifyExitUsed();
+            else GameBoot.Instance.ExitReached();
         }
     }
 

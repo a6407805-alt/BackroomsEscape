@@ -11,13 +11,18 @@ using UnityEngine.Networking;
 
 namespace Backrooms
 {
-    /// <summary>Finds every entity folder in StreamingAssets/Entities, loads its sounds, and loads/instantiates its glTF model.</summary>
+    /// <summary>
+    /// Loads every modded/bundled entity folder in StreamingAssets/Entities AND merges the 345+ procedural SCP Foundation
+    /// horror anomalies from ScpCatalog (350+ total rotating roster). Supports both glTF (.glb) models and articulated
+    /// procedural nightmare rigs.
+    /// </summary>
     public class EntityLibrary : MonoBehaviour
     {
         public static EntityLibrary Instance { get; private set; }
         public readonly List<EntityDef> Defs = new List<EntityDef>();
         public bool Ready { get; private set; }
 
+        private readonly Dictionary<string, int> _indexById = new Dictionary<string, int>();
         private readonly Dictionary<string, GltfImport> _models = new Dictionary<string, GltfImport>();
         private readonly Dictionary<string, Task<GltfImport>> _loading = new Dictionary<string, Task<GltfImport>>();
 
@@ -28,6 +33,9 @@ namespace Backrooms
         public IEnumerator LoadAll()
         {
             Defs.Clear();
+            _indexById.Clear();
+            int diskCount = 0;
+
             if (Directory.Exists(Root))
             {
                 foreach (var dir in Directory.GetDirectories(Root))
@@ -39,16 +47,40 @@ namespace Backrooms
                     catch (Exception e) { Debug.LogWarning($"[Backrooms] {json}: {e.Message}"); }
                     if (def == null || string.IsNullOrEmpty(def.id)) continue;
                     def.Folder = dir;
-                    Defs.Add(def);
+                    // Upgrade bundled SCPs with new voice-stealing / light-flickering traits
+                    if (def.behaviour == "listener" || def.id == "scp-939") def.stealsVoices = true;
+                    if (def.behaviour == "stalker" || def.id == "scp-106") def.flickersLights = true;
+                    Register(def);
+                    diskCount++;
                 }
             }
-            Debug.Log($"[Backrooms] {Defs.Count} entities found in {Root}");
-            foreach (var def in Defs) yield return LoadSounds(def);
+
+            for (int i = 0; i < diskCount; i++)
+                yield return LoadSounds(Defs[i]);
+
+            // Merge the 345+ SCP horror catalog (any StreamingAssets folder with the same id overrides the procedural entry)
+            var catalog = ScpCatalog.BuildAll();
+            int procCount = 0;
+            foreach (var c in catalog)
+            {
+                if (_indexById.ContainsKey(c.id)) continue;
+                Register(c);
+                procCount++;
+            }
+
+            Debug.Log($"[Backrooms] {Defs.Count} SCP entities ready ({diskCount} glTF + {procCount} procedural rotating catalog).");
             Ready = true;
+        }
+
+        private void Register(EntityDef def)
+        {
+            _indexById[def.id] = Defs.Count;
+            Defs.Add(def);
         }
 
         private static IEnumerator LoadSounds(EntityDef def)
         {
+            if (string.IsNullOrEmpty(def.Folder)) yield break;
             var files = new HashSet<string>();
             void Add(string[] a) { if (a != null) foreach (var f in a) if (!string.IsNullOrEmpty(f)) files.Add(f); }
             Add(def.sounds.ambient); Add(def.sounds.alert); Add(def.sounds.chase); Add(def.sounds.attack); Add(def.sounds.idleLines);
@@ -69,10 +101,16 @@ namespace Backrooms
             }
         }
 
-        public EntityDef Get(string id) => Defs.Find(d => d.id == id);
+        public EntityDef Get(string id) => _indexById.TryGetValue(id, out int idx) ? Defs[idx] : null;
+        public int IndexOf(EntityDef def) => def != null && _indexById.TryGetValue(def.id, out int idx) ? idx : -1;
+        public EntityDef GetByIndex(int idx) => idx >= 0 && idx < Defs.Count ? Defs[idx] : null;
+
+        public static bool UsesGltf(EntityDef def) =>
+            def != null && !string.IsNullOrEmpty(def.model) && !string.IsNullOrEmpty(def.ModelPath) && File.Exists(def.ModelPath);
 
         public async Task<GltfImport> Model(EntityDef def)
         {
+            if (!UsesGltf(def)) return null;
             if (_models.TryGetValue(def.id, out var g)) return g;
             if (!_loading.TryGetValue(def.id, out var task))
             {
@@ -86,7 +124,7 @@ namespace Backrooms
 
         private static async Task<GltfImport> LoadModel(EntityDef def)
         {
-            if (!File.Exists(def.ModelPath)) { Debug.LogWarning("[Backrooms] missing model " + def.ModelPath); return null; }
+            if (!UsesGltf(def)) return null;
             var gltf = new GltfImport(materialGenerator: new LitMaterialGenerator());
             var settings = new ImportSettings { AnimationMethod = AnimationMethod.Legacy, GenerateMipMaps = true };
             bool ok = await gltf.LoadFile(def.ModelPath, new Uri(def.ModelPath), settings);
@@ -94,7 +132,24 @@ namespace Backrooms
             return gltf;
         }
 
-        /// <summary>Instantiates the entity's model under `parent`, stood up, scaled to def.height and grounded. Returns the Animation (may be null).</summary>
+        /// <summary>Spawns either a glTF model or a procedural articulated horror rig under `parent`.</summary>
+        public async Task<(Animation legacyAnim, ProceduralScpRig procRig)> SpawnVisuals(EntityDef def, Transform parent)
+        {
+            if (parent == null || def == null) return (null, null);
+
+            if (UsesGltf(def))
+            {
+                var anim = await Spawn(def, parent);
+                if (parent == null) return (null, null);
+                if (anim != null || parent.Find("Model") != null)
+                    return (anim, null);
+            }
+
+            var rig = ProceduralScpRig.Build(def, parent);
+            return (null, rig);
+        }
+
+        /// <summary>Instantiates a glTF entity's model under `parent`, stood up, scaled to def.height and grounded.</summary>
         public async Task<Animation> Spawn(EntityDef def, Transform parent)
         {
             var gltf = await Model(def);
@@ -124,7 +179,6 @@ namespace Backrooms
             return anim;
         }
 
-        /// <summary>Scale the posed model to def.height and put its lowest point on the floor.</summary>
         private static void Fit(Transform holder, EntityDef def)
         {
             var min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
@@ -150,17 +204,12 @@ namespace Backrooms
             float s = def.height / h;
             Vector3 pivot = holder.position;
             holder.localScale = Vector3.one * s;
-            // after scaling around the holder's origin, the bottom moved to pivot.y + (min.y - pivot.y) * s
             float bottom = pivot.y + (min.y - pivot.y) * s;
             Vector3 centerXZ = new Vector3((min.x + max.x) / 2f - pivot.x, 0, (min.z + max.z) / 2f - pivot.z) * s;
             holder.position = new Vector3(pivot.x - centerXZ.x, pivot.y + (pivot.y - bottom) + def.yOffset, pivot.z - centerXZ.z);
         }
     }
 
-    /// <summary>
-    /// Makes glTF materials from our URP Lit templates (so we don't depend on glTFast's shader graphs being in the build).
-    /// Supports base colour + texture and alpha cutout - all the SCP models need.
-    /// </summary>
     public class LitMaterialGenerator : IMaterialGenerator
     {
         public UnityEngine.Material GetDefaultMaterial(bool pointsSupport = false) => Mats.Lit(new Color(0.7f, 0.7f, 0.7f));
