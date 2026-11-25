@@ -29,7 +29,7 @@ namespace Backrooms
     /// </summary>
     public static class Mats
     {
-        private static Material _lit, _cutout, _emissive, _unlit;
+        private static Material _lit, _cutout, _emissive, _unlit, _litN, _cutoutN;
 
         private static Material Template(ref Material cache, string resName, string shader)
         {
@@ -51,6 +51,30 @@ namespace Backrooms
             if (tiling.HasValue) m.SetTextureScale("_BaseMap", tiling.Value);
             m.SetFloat("_Smoothness", smoothness);
             m.SetFloat("_Metallic", 0f);
+            return m;
+        }
+
+        /// <summary>Lit with a tangent-space normal map (entity models). Falls back to plain Lit when there's no normal map.</summary>
+        public static Material LitNormal(Color color, Texture tex, Texture normal, float smoothness, float bumpScale = 1f)
+        {
+            if (normal == null) return Lit(color, tex, smoothness);
+            var m = new Material(Template(ref _litN, "LitNormal", "Universal Render Pipeline/Lit"));
+            m.SetColor("_BaseColor", color);
+            if (tex != null) m.SetTexture("_BaseMap", tex);
+            m.SetTexture("_BumpMap", normal); m.SetFloat("_BumpScale", bumpScale); m.EnableKeyword("_NORMALMAP");
+            m.SetFloat("_Smoothness", smoothness); m.SetFloat("_Metallic", 0f);
+            return m;
+        }
+
+        public static Material CutoutNormal(Color color, Texture tex, Texture normal, float cutoff, float smoothness, float bumpScale = 1f)
+        {
+            if (normal == null) return Cutout(color, tex, cutoff);
+            var m = new Material(Template(ref _cutoutN, "LitCutoutNormal", "Universal Render Pipeline/Lit"));
+            m.SetColor("_BaseColor", color);
+            if (tex != null) m.SetTexture("_BaseMap", tex);
+            m.SetTexture("_BumpMap", normal); m.SetFloat("_BumpScale", bumpScale); m.EnableKeyword("_NORMALMAP");
+            m.SetFloat("_Cutoff", cutoff); m.SetFloat("_AlphaClip", 1f); m.EnableKeyword("_ALPHATEST_ON"); m.SetFloat("_Cull", 0f);
+            m.SetFloat("_Smoothness", smoothness); m.SetFloat("_Metallic", 0f);
             return m;
         }
 

@@ -217,17 +217,21 @@ namespace Backrooms
         public UnityEngine.Material GenerateMaterial(GLTFast.Schema.MaterialBase gltfMaterial, IGltfReadable gltf, bool pointsSupport = false)
         {
             Color color = Color.white;
-            Texture2D tex = null;
+            Texture2D tex = null, normal = null;
+            float smoothness = 0.2f, bump = 1f;
             var pbr = gltfMaterial.PbrMetallicRoughness;
             if (pbr != null)
             {
                 color = pbr.BaseColor;
                 var ti = pbr.BaseColorTexture;
                 if (ti != null && ti.index >= 0) tex = gltf.GetTexture(ti.index);
+                smoothness = Mathf.Clamp01(1f - pbr.roughnessFactor) * 0.6f;   // keep skin/cloth from looking wet under the fluorescents
             }
+            var ni = gltfMaterial.NormalTexture;
+            if (ni != null && ni.index >= 0) { normal = gltf.GetTexture(ni.index); bump = ni.scale; }
             UnityEngine.Material m = gltfMaterial.GetAlphaMode() == GLTFast.Schema.MaterialBase.AlphaMode.Mask
-                ? Mats.Cutout(color, tex, gltfMaterial.alphaCutoff)
-                : Mats.Lit(color, tex, 0.2f);
+                ? Mats.CutoutNormal(color, tex, normal, gltfMaterial.alphaCutoff, smoothness, bump)
+                : Mats.LitNormal(color, tex, normal, smoothness, bump);
             m.name = gltfMaterial.name;
             return m;
         }

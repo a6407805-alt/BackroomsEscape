@@ -23,7 +23,7 @@ Everything in `Assets/StreamingAssets/Entities/` (models, animations, sounds, na
   `SCPCB-CREDITS.txt` and on the in-game Credits screen.
 
 Aaron is SCP - Containment Breach's Class-D model, recast. **Changes made:** models converted from Blitz3D `.b3d` to glTF 2.0 (`.glb`) with their skeletons; the single
-animation timeline split into named clips; sounds copied unchanged; behaviour rewritten for this game.
+animation timeline split into named clips; in Blender, meshes smoothed with Catmull-Clark subdivision, textures upscaled to 2048 px and sharpened, and detail normal maps derived from the textures (skeletons and animations unchanged); sounds copied unchanged; behaviour rewritten for this game.
 
 These files are shared under CC BY-SA 3.0. You may copy, share and adapt them, including commercially, as long as
 you credit the authors above and release your adaptations under the same licence.

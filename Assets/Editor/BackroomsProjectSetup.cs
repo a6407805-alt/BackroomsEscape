@@ -71,6 +71,18 @@ namespace Backrooms.EditorTools
                 m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
             });
             changed |= Mat("Unlit", "Universal Render Pipeline/Unlit", m => { });
+            // entity models carry normal maps; these templates keep the _NORMALMAP variants in builds
+            changed |= Mat("LitNormal", "Universal Render Pipeline/Lit", m =>
+            {
+                m.EnableKeyword("_NORMALMAP"); m.SetTexture("_BumpMap", Texture2D.normalTexture);
+            });
+            changed |= Mat("LitCutoutNormal", "Universal Render Pipeline/Lit", m =>
+            {
+                m.EnableKeyword("_NORMALMAP"); m.SetTexture("_BumpMap", Texture2D.normalTexture);
+                m.SetFloat("_AlphaClip", 1f); m.SetFloat("_Cutoff", 0.5f); m.SetFloat("_Cull", 0f);
+                m.EnableKeyword("_ALPHATEST_ON");
+                m.renderQueue = (int)UnityEngine.Rendering.RenderQueue.AlphaTest;
+            });
             return changed;
         }
 
